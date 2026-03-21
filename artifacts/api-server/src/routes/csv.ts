@@ -215,7 +215,13 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
     variationCache.set(r.assetId, r.variations);
   }
 
-  const startDate = new Date(campaign.startDate);
+  let startDate: Date;
+  if (typeof campaign.startDate === "string") {
+    const parts = campaign.startDate.split("T")[0].split("-");
+    startDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  } else {
+    startDate = new Date(campaign.startDate);
+  }
   const posts: PostSlot[] = [];
   const assetUsageCount = new Map<number, number>();
 
