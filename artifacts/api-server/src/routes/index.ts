@@ -9,6 +9,7 @@ import socialAccountsRouter from "./socialAccounts";
 import tenantRouter from "./tenant";
 import csvRouter from "./csv";
 import adminRouter from "./admin";
+import groundingDocsRouter from "./groundingDocs";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(socialAccountsRouter);
 router.use(tenantRouter);
 router.use(csvRouter);
 router.use(adminRouter);
+router.use(groundingDocsRouter);
 
 export default router;

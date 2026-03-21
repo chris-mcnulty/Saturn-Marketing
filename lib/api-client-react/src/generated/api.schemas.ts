@@ -33,9 +33,9 @@ export interface LoginBody {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const UserRole = {
-  "Global Admin": "Global Admin",
-  "Domain Admin": "Domain Admin",
-  "Standard User": "Standard User",
+  Global_Admin: "Global Admin",
+  Domain_Admin: "Domain Admin",
+  Standard_User: "Standard User",
   Consultant: "Consultant",
 } as const;
 
@@ -45,9 +45,13 @@ export interface User {
   name: string;
   role: UserRole;
   tenantId: number;
+  /** @nullable */
   avatar?: string | null;
+  /** @nullable */
   authProvider?: string | null;
+  /** @nullable */
   emailVerified?: boolean | null;
+  /** @nullable */
   status?: string | null;
   createdAt: string;
 }
@@ -74,9 +78,9 @@ export type UpdateUserBodyRole =
   (typeof UpdateUserBodyRole)[keyof typeof UpdateUserBodyRole];
 
 export const UpdateUserBodyRole = {
-  "Global Admin": "Global Admin",
-  "Domain Admin": "Domain Admin",
-  "Standard User": "Standard User",
+  Global_Admin: "Global Admin",
+  Domain_Admin: "Domain Admin",
+  Standard_User: "Standard User",
   Consultant: "Consultant",
 } as const;
 
@@ -331,6 +335,71 @@ export interface UpdateSocialAccountBody {
 
 export interface AddCampaignSocialAccountBody {
   socialAccountId: number;
+}
+
+export type GroundingDocCategory =
+  (typeof GroundingDocCategory)[keyof typeof GroundingDocCategory];
+
+export const GroundingDocCategory = {
+  brand_voice: "brand_voice",
+  messaging_framework: "messaging_framework",
+  marketing_guidelines: "marketing_guidelines",
+  methodology: "methodology",
+} as const;
+
+export interface GroundingDoc {
+  id: number;
+  tenantId: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  category: GroundingDocCategory;
+  /** @nullable */
+  fileType?: string | null;
+  /** @nullable */
+  originalFileName?: string | null;
+  extractedText: string;
+  wordCount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateGroundingDocBodyCategory =
+  (typeof CreateGroundingDocBodyCategory)[keyof typeof CreateGroundingDocBodyCategory];
+
+export const CreateGroundingDocBodyCategory = {
+  brand_voice: "brand_voice",
+  messaging_framework: "messaging_framework",
+  marketing_guidelines: "marketing_guidelines",
+  methodology: "methodology",
+} as const;
+
+export interface CreateGroundingDocBody {
+  name: string;
+  description?: string;
+  category: CreateGroundingDocBodyCategory;
+  content: string;
+  fileType?: string;
+  originalFileName?: string;
+}
+
+export type UpdateGroundingDocBodyCategory =
+  (typeof UpdateGroundingDocBodyCategory)[keyof typeof UpdateGroundingDocBodyCategory];
+
+export const UpdateGroundingDocBodyCategory = {
+  brand_voice: "brand_voice",
+  messaging_framework: "messaging_framework",
+  marketing_guidelines: "marketing_guidelines",
+  methodology: "methodology",
+} as const;
+
+export interface UpdateGroundingDocBody {
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  category?: UpdateGroundingDocBodyCategory;
+  isActive?: boolean;
 }
 
 export interface GeneratedPost {

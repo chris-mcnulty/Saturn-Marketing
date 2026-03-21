@@ -40,13 +40,18 @@ export const LoginResponse = zod.object({
     id: zod.number(),
     email: zod.string(),
     name: zod.string(),
-    role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
+    role: zod.enum([
+      "Global Admin",
+      "Domain Admin",
+      "Standard User",
+      "Consultant",
+    ]),
     tenantId: zod.number(),
-    avatar: zod.string().nullable().optional(),
-    authProvider: zod.string().nullable().optional(),
-    emailVerified: zod.boolean().nullable().optional(),
-    status: zod.string().nullable().optional(),
-    createdAt: zod.string(),
+    avatar: zod.string().nullish(),
+    authProvider: zod.string().nullish(),
+    emailVerified: zod.boolean().nullish(),
+    status: zod.string().nullish(),
+    createdAt: zod.date(),
   }),
   tenant: zod.object({
     id: zod.number(),
@@ -54,7 +59,7 @@ export const LoginResponse = zod.object({
     domain: zod.string().optional(),
     plan: zod.string().optional(),
     status: zod.string().optional(),
-    createdAt: zod.string(),
+    createdAt: zod.date(),
   }),
 });
 
@@ -66,13 +71,18 @@ export const GetMeResponse = zod.object({
     id: zod.number(),
     email: zod.string(),
     name: zod.string(),
-    role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
+    role: zod.enum([
+      "Global Admin",
+      "Domain Admin",
+      "Standard User",
+      "Consultant",
+    ]),
     tenantId: zod.number(),
-    avatar: zod.string().nullable().optional(),
-    authProvider: zod.string().nullable().optional(),
-    emailVerified: zod.boolean().nullable().optional(),
-    status: zod.string().nullable().optional(),
-    createdAt: zod.string(),
+    avatar: zod.string().nullish(),
+    authProvider: zod.string().nullish(),
+    emailVerified: zod.boolean().nullish(),
+    status: zod.string().nullish(),
+    createdAt: zod.date(),
   }),
   tenant: zod.object({
     id: zod.number(),
@@ -80,7 +90,7 @@ export const GetMeResponse = zod.object({
     domain: zod.string().optional(),
     plan: zod.string().optional(),
     status: zod.string().optional(),
-    createdAt: zod.string(),
+    createdAt: zod.date(),
   }),
 });
 
@@ -669,11 +679,132 @@ export const RemoveCampaignSocialAccountParams = zod.object({
 });
 
 /**
+ * @summary List grounding documents for the current tenant
+ */
+export const ListGroundingDocsResponseItem = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "brand_voice",
+    "messaging_framework",
+    "marketing_guidelines",
+    "methodology",
+  ]),
+  fileType: zod.string().nullish(),
+  originalFileName: zod.string().nullish(),
+  extractedText: zod.string(),
+  wordCount: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListGroundingDocsResponse = zod.array(
+  ListGroundingDocsResponseItem,
+);
+
+/**
+ * @summary Create a grounding document
+ */
+export const CreateGroundingDocBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  category: zod.enum([
+    "brand_voice",
+    "messaging_framework",
+    "marketing_guidelines",
+    "methodology",
+  ]),
+  content: zod.string(),
+  fileType: zod.string().optional(),
+  originalFileName: zod.string().optional(),
+});
+
+/**
+ * @summary Get a single grounding document
+ */
+export const GetGroundingDocParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetGroundingDocResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "brand_voice",
+    "messaging_framework",
+    "marketing_guidelines",
+    "methodology",
+  ]),
+  fileType: zod.string().nullish(),
+  originalFileName: zod.string().nullish(),
+  extractedText: zod.string(),
+  wordCount: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update a grounding document
+ */
+export const UpdateGroundingDocParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateGroundingDocBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().nullish(),
+  category: zod
+    .enum([
+      "brand_voice",
+      "messaging_framework",
+      "marketing_guidelines",
+      "methodology",
+    ])
+    .optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateGroundingDocResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "brand_voice",
+    "messaging_framework",
+    "marketing_guidelines",
+    "methodology",
+  ]),
+  fileType: zod.string().nullish(),
+  originalFileName: zod.string().nullish(),
+  extractedText: zod.string(),
+  wordCount: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete a grounding document
+ */
+export const DeleteGroundingDocParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Get current tenant info
  */
 export const GetTenantResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
+  domain: zod.string().optional(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
   createdAt: zod.date(),
 });
 
@@ -687,6 +818,9 @@ export const UpdateTenantBody = zod.object({
 export const UpdateTenantResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
+  domain: zod.string().optional(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
   createdAt: zod.date(),
 });
 
@@ -697,8 +831,17 @@ export const ListTenantUsersResponseItem = zod.object({
   id: zod.number(),
   email: zod.string(),
   name: zod.string(),
-  role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
+  role: zod.enum([
+    "Global Admin",
+    "Domain Admin",
+    "Standard User",
+    "Consultant",
+  ]),
   tenantId: zod.number(),
+  avatar: zod.string().nullish(),
+  authProvider: zod.string().nullish(),
+  emailVerified: zod.boolean().nullish(),
+  status: zod.string().nullish(),
   createdAt: zod.date(),
 });
 export const ListTenantUsersResponse = zod.array(ListTenantUsersResponseItem);
@@ -711,15 +854,26 @@ export const UpdateTenantUserParams = zod.object({
 });
 
 export const UpdateTenantUserBody = zod.object({
-  role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]).optional(),
+  role: zod
+    .enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"])
+    .optional(),
 });
 
 export const UpdateTenantUserResponse = zod.object({
   id: zod.number(),
   email: zod.string(),
   name: zod.string(),
-  role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
+  role: zod.enum([
+    "Global Admin",
+    "Domain Admin",
+    "Standard User",
+    "Consultant",
+  ]),
   tenantId: zod.number(),
+  avatar: zod.string().nullish(),
+  authProvider: zod.string().nullish(),
+  emailVerified: zod.boolean().nullish(),
+  status: zod.string().nullish(),
   createdAt: zod.date(),
 });
 

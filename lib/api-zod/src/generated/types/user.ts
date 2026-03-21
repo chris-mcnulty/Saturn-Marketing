@@ -13,9 +13,13 @@ export interface User {
   name: string;
   role: UserRole;
   tenantId: number;
+  /** @nullable */
   avatar?: string | null;
+  /** @nullable */
   authProvider?: string | null;
+  /** @nullable */
   emailVerified?: boolean | null;
+  /** @nullable */
   status?: string | null;
   createdAt: Date;
 }

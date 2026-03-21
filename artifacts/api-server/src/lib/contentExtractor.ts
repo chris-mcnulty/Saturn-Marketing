@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import * as cheerio from "cheerio";
 import { logger } from "./logger";
+import { getGroundingContext } from "./groundingContext";
 
 export async function extractContent(assetId: number): Promise<void> {
   const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, assetId));
@@ -50,13 +51,21 @@ export async function extractContent(assetId: number): Promise<void> {
 
     if (textContent) {
       try {
+        const groundingContext = await getGroundingContext(asset.tenantId);
+        const systemPromptParts = [
+          "You are a social media marketing expert. Generate a concise, engaging social media post caption (1-2 sentences) based on the following web page content. Make it compelling and shareable. Do not include hashtags.",
+        ];
+        if (groundingContext) {
+          systemPromptParts.push(groundingContext);
+        }
+
         const completion = await openai.chat.completions.create({
           model: "gpt-5-mini",
           max_completion_tokens: 200,
           messages: [
             {
               role: "system",
-              content: "You are a social media marketing expert. Generate a concise, engaging social media post caption (1-2 sentences) based on the following web page content. Make it compelling and shareable. Do not include hashtags.",
+              content: systemPromptParts.join("\n\n"),
             },
             {
               role: "user",

@@ -12,3 +12,4 @@ export * from "./emailVerificationTokens";
 export * from "./tenantInvites";
 export * from "./domainBlocklist";
 export * from "./consultantAccess";
+export * from "./groundingDocuments";

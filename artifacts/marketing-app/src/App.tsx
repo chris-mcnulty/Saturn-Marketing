@@ -15,6 +15,7 @@ import Campaigns from "@/pages/campaigns";
 import CampaignDetail from "@/pages/campaign-detail";
 import SocialAccounts from "@/pages/social-accounts";
 import Settings from "@/pages/settings";
+import GroundingDocs from "@/pages/grounding-docs";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/campaigns/:id" component={CampaignDetail} />
       <Route path="/social-accounts" component={SocialAccounts} />
+      <Route path="/grounding-docs" component={GroundingDocs} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>

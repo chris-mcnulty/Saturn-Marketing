@@ -30,9 +30,11 @@ import type {
   CreateBrandAssetBody,
   CreateCampaignBody,
   CreateCategoryBody,
+  CreateGroundingDocBody,
   CreateSocialAccountBody,
   ErrorResponse,
   GeneratedPost,
+  GroundingDoc,
   HealthStatus,
   ListAssetsParams,
   ListCampaignsParams,
@@ -46,6 +48,7 @@ import type {
   UpdateCampaignAssetBody,
   UpdateCampaignBody,
   UpdateCategoryBody,
+  UpdateGroundingDocBody,
   UpdateSocialAccountBody,
   UpdateTenantBody,
   UpdateUserBody,
@@ -3217,6 +3220,425 @@ export const useRemoveCampaignSocialAccount = <
   TContext
 > => {
   return useMutation(getRemoveCampaignSocialAccountMutationOptions(options));
+};
+
+/**
+ * @summary List grounding documents for the current tenant
+ */
+export const getListGroundingDocsUrl = () => {
+  return `/api/grounding-docs`;
+};
+
+export const listGroundingDocs = async (
+  options?: RequestInit,
+): Promise<GroundingDoc[]> => {
+  return customFetch<GroundingDoc[]>(getListGroundingDocsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListGroundingDocsQueryKey = () => {
+  return [`/api/grounding-docs`] as const;
+};
+
+export const getListGroundingDocsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGroundingDocs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listGroundingDocs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListGroundingDocsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGroundingDocs>>
+  > = ({ signal }) => listGroundingDocs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGroundingDocs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGroundingDocsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGroundingDocs>>
+>;
+export type ListGroundingDocsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List grounding documents for the current tenant
+ */
+
+export function useListGroundingDocs<
+  TData = Awaited<ReturnType<typeof listGroundingDocs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listGroundingDocs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGroundingDocsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a grounding document
+ */
+export const getCreateGroundingDocUrl = () => {
+  return `/api/grounding-docs`;
+};
+
+export const createGroundingDoc = async (
+  createGroundingDocBody: CreateGroundingDocBody,
+  options?: RequestInit,
+): Promise<GroundingDoc> => {
+  return customFetch<GroundingDoc>(getCreateGroundingDocUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createGroundingDocBody),
+  });
+};
+
+export const getCreateGroundingDocMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createGroundingDoc>>,
+    TError,
+    { data: BodyType<CreateGroundingDocBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createGroundingDoc>>,
+  TError,
+  { data: BodyType<CreateGroundingDocBody> },
+  TContext
+> => {
+  const mutationKey = ["createGroundingDoc"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createGroundingDoc>>,
+    { data: BodyType<CreateGroundingDocBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createGroundingDoc(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateGroundingDocMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createGroundingDoc>>
+>;
+export type CreateGroundingDocMutationBody = BodyType<CreateGroundingDocBody>;
+export type CreateGroundingDocMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a grounding document
+ */
+export const useCreateGroundingDoc = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createGroundingDoc>>,
+    TError,
+    { data: BodyType<CreateGroundingDocBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createGroundingDoc>>,
+  TError,
+  { data: BodyType<CreateGroundingDocBody> },
+  TContext
+> => {
+  return useMutation(getCreateGroundingDocMutationOptions(options));
+};
+
+/**
+ * @summary Get a single grounding document
+ */
+export const getGetGroundingDocUrl = (id: number) => {
+  return `/api/grounding-docs/${id}`;
+};
+
+export const getGroundingDoc = async (
+  id: number,
+  options?: RequestInit,
+): Promise<GroundingDoc> => {
+  return customFetch<GroundingDoc>(getGetGroundingDocUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetGroundingDocQueryKey = (id: number) => {
+  return [`/api/grounding-docs/${id}`] as const;
+};
+
+export const getGetGroundingDocQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGroundingDoc>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGroundingDoc>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetGroundingDocQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getGroundingDoc>>> = ({
+    signal,
+  }) => getGroundingDoc(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGroundingDoc>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGroundingDocQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGroundingDoc>>
+>;
+export type GetGroundingDocQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a single grounding document
+ */
+
+export function useGetGroundingDoc<
+  TData = Awaited<ReturnType<typeof getGroundingDoc>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGroundingDoc>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGroundingDocQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a grounding document
+ */
+export const getUpdateGroundingDocUrl = (id: number) => {
+  return `/api/grounding-docs/${id}`;
+};
+
+export const updateGroundingDoc = async (
+  id: number,
+  updateGroundingDocBody: UpdateGroundingDocBody,
+  options?: RequestInit,
+): Promise<GroundingDoc> => {
+  return customFetch<GroundingDoc>(getUpdateGroundingDocUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateGroundingDocBody),
+  });
+};
+
+export const getUpdateGroundingDocMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGroundingDoc>>,
+    TError,
+    { id: number; data: BodyType<UpdateGroundingDocBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateGroundingDoc>>,
+  TError,
+  { id: number; data: BodyType<UpdateGroundingDocBody> },
+  TContext
+> => {
+  const mutationKey = ["updateGroundingDoc"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateGroundingDoc>>,
+    { id: number; data: BodyType<UpdateGroundingDocBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateGroundingDoc(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateGroundingDocMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateGroundingDoc>>
+>;
+export type UpdateGroundingDocMutationBody = BodyType<UpdateGroundingDocBody>;
+export type UpdateGroundingDocMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a grounding document
+ */
+export const useUpdateGroundingDoc = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGroundingDoc>>,
+    TError,
+    { id: number; data: BodyType<UpdateGroundingDocBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateGroundingDoc>>,
+  TError,
+  { id: number; data: BodyType<UpdateGroundingDocBody> },
+  TContext
+> => {
+  return useMutation(getUpdateGroundingDocMutationOptions(options));
+};
+
+/**
+ * @summary Delete a grounding document
+ */
+export const getDeleteGroundingDocUrl = (id: number) => {
+  return `/api/grounding-docs/${id}`;
+};
+
+export const deleteGroundingDoc = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteGroundingDocUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteGroundingDocMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGroundingDoc>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteGroundingDoc>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteGroundingDoc"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteGroundingDoc>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteGroundingDoc(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteGroundingDocMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteGroundingDoc>>
+>;
+
+export type DeleteGroundingDocMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a grounding document
+ */
+export const useDeleteGroundingDoc = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGroundingDoc>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteGroundingDoc>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteGroundingDocMutationOptions(options));
 };
 
 /**

@@ -38,6 +38,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Campaign Management**: Create campaigns with scheduling (start date, duration, posts/day, posting times), assign assets and social accounts.
 - **SocialPilot CSV Export**: Generate bulk posts with AI-powered variation for repeated content. Max 500 posts per export.
 - **Social Account Management**: Configure social media accounts with SocialPilot account IDs.
+- **AI Grounding Documents**: Upload/paste brand voice guidelines, messaging frameworks, marketing guidelines, and methodology docs. Tenant-scoped, active/inactive toggle. Active docs are automatically injected into AI prompts for content extraction and post variation generation.
 - **Settings**: Manage organization profile, content categories, and team members.
 
 ## Structure
@@ -81,19 +82,20 @@ Express 5 API server with session-based auth, multi-tenant data isolation, AI co
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
 - App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, express-session, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv, admin
+- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv, admin, grounding-docs
 - Auth routes: `src/routes/auth.ts` — register (domain-based with blocklist check), login (SSO-aware), me, logout, Entra SSO status
 - Admin routes: `src/routes/admin.ts` — service plans CRUD, domain blocklist, tenant management, user management, tenant invites, consultant access
 - Middleware: `src/middlewares/auth.ts` — `requireAuth`, `requireAdmin` (Domain Admin+), `requireGlobalAdmin`
 - Services: `src/services/plan-policy.ts` — feature registry, plan limits, DB-cached plan features with TTL
-- Content Extractor: `src/lib/contentExtractor.ts` — cheerio + OpenAI for URL metadata extraction
+- Content Extractor: `src/lib/contentExtractor.ts` — cheerio + OpenAI for URL metadata extraction (uses grounding context)
+- Grounding Context: `src/lib/groundingContext.ts` — fetches active grounding docs for a tenant and formats them for AI prompt injection
 - Depends on: `@workspace/db`, `@workspace/api-zod`, `@workspace/integrations-openai-ai-server`
 
 ### `artifacts/marketing-app` (`@workspace/marketing-app`)
 
 React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 
-- Pages: login, register, dashboard, assets, brand-assets, campaigns, campaign-detail, social-accounts, settings
+- Pages: login, register, dashboard, assets, brand-assets, campaigns, campaign-detail, social-accounts, grounding-docs, settings
 - Layout: sidebar navigation with mobile responsive drawer
 - Auth context: auto-redirects to login when unauthenticated
 - API client: uses generated React Query hooks from `@workspace/api-client-react` with `credentials: "include"` for session cookies
@@ -108,7 +110,7 @@ React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 Database layer using Drizzle ORM with PostgreSQL.
 
 Schema tables:
-- **Core**: tenants, users, categories, assets, brandAssets, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts
+- **Core**: tenants, users, categories, assets, brandAssets, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts, groundingDocuments
 - **Orbit patterns**: servicePlans, emailVerificationTokens, tenantInvites, domainBlocklist, consultantAccess
 
 Tenants table: domain (unique), name, plan, status, trial dates, user/analysis/competitor limits, Entra SSO fields, branding colors

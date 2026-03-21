@@ -7,6 +7,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { getGroundingContext } from "../lib/groundingContext";
 
 const router: IRouter = Router();
 
@@ -21,15 +22,22 @@ interface PostSlot {
   assetTitle: string | null;
 }
 
-async function generateVariation(originalText: string): Promise<string> {
+async function generateVariation(originalText: string, groundingContext: string): Promise<string> {
   try {
+    const systemPromptParts = [
+      "You are a social media marketing expert. Rewrite the following social media post with different wording while keeping the same core message. Make it sound fresh and engaging. Return only the rewritten post text, nothing else.",
+    ];
+    if (groundingContext) {
+      systemPromptParts.push(groundingContext);
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       max_tokens: 200,
       messages: [
         {
           role: "system",
-          content: "You are a social media marketing expert. Rewrite the following social media post with different wording while keeping the same core message. Make it sound fresh and engaging. Return only the rewritten post text, nothing else.",
+          content: systemPromptParts.join("\n\n"),
         },
         {
           role: "user",
@@ -75,6 +83,8 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
   if (socialAccounts.length === 0) throw new Error("No social accounts assigned to campaign");
 
+  const groundingContext = await getGroundingContext(tenantId);
+
   const postingTimesArr = campaign.postingTimes
     ? campaign.postingTimes.split(",").map(t => t.trim())
     : generateDefaultTimes(campaign.postsPerDay);
@@ -119,7 +129,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
       const isReuse = assetUsageTracker.has(selectedAsset.assetId);
       let finalText = postText;
       if (isReuse) {
-        finalText = await generateVariation(postText);
+        finalText = await generateVariation(postText, groundingContext);
       }
 
       if (campaign.hashtags) {

@@ -12,7 +12,8 @@ import {
   X,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  BookOpen
 } from "lucide-react";
 import { SynozurLogo, SynozurTextLogo } from "@/components/synozur-logo";
 import { useAuth } from "@/lib/auth-context";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/assets", label: "Asset Library", icon: Files },
   { href: "/brand-assets", label: "Brand Assets", icon: ImageIcon },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+  { href: "/grounding-docs", label: "Grounding Docs", icon: BookOpen },
   { href: "/social-accounts", label: "Social Accounts", icon: Share2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
