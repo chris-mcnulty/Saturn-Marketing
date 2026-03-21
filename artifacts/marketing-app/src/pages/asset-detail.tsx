@@ -1,0 +1,552 @@
+import React, { useState, useEffect } from "react";
+import { AppLayout } from "@/components/layout";
+import {
+  useGetAsset,
+  useUpdateAsset,
+  useExtractAssetContent,
+  useListCategories,
+  getGetAssetQueryKey,
+  getListAssetsQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRoute, Link } from "wouter";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  ArrowLeft,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
+  Save,
+  X,
+  Pencil,
+  Link as LinkIcon,
+  Calendar,
+  Clock,
+} from "lucide-react";
+import { format } from "date-fns";
+
+const editSchema = z.object({
+  title: z.string().optional(),
+  url: z.string().url("Must be a valid URL"),
+  categoryId: z.coerce.number().optional().nullable(),
+  isActive: z.boolean(),
+  summaryText: z.string().optional().nullable(),
+});
+
+type EditFormValues = z.infer<typeof editSchema>;
+
+function ExtractionStatusBadge({ status }: { status: string }) {
+  const config: Record<string, { icon: React.ReactNode; className: string }> = {
+    completed: {
+      icon: <CheckCircle2 className="w-4 h-4" />,
+      className: "bg-green-500/10 text-green-600 border-green-500/20",
+    },
+    pending: {
+      icon: <div className="w-2 h-2 rounded-full bg-yellow-500" />,
+      className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+    },
+    processing: {
+      icon: <Loader2 className="w-4 h-4 animate-spin" />,
+      className: "bg-primary/10 text-primary border-primary/20",
+    },
+    failed: {
+      icon: <XCircle className="w-4 h-4" />,
+      className: "bg-destructive/10 text-destructive border-destructive/20",
+    },
+  };
+
+  const { icon, className } = config[status] || config.pending;
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${className}`}>
+      {icon}
+      <span className="capitalize">{status}</span>
+    </span>
+  );
+}
+
+export default function AssetDetail() {
+  const [, params] = useRoute("/assets/:id");
+  const id = parseInt(params?.id || "0");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+
+  const isValidId = Number.isFinite(id) && id > 0;
+  const { data: asset, isLoading, error: fetchError } = useGetAsset(id, {
+    query: { enabled: isValidId },
+  });
+  const { data: categories } = useListCategories();
+  const updateMutation = useUpdateAsset();
+  const extractMutation = useExtractAssetContent();
+
+  const form = useForm<EditFormValues>({
+    resolver: zodResolver(editSchema),
+    defaultValues: {
+      title: "",
+      url: "",
+      categoryId: null,
+      isActive: true,
+      summaryText: "",
+    },
+  });
+
+  useEffect(() => {
+    if (asset) {
+      form.reset({
+        title: asset.title || "",
+        url: asset.url,
+        categoryId: asset.categoryId || null,
+        isActive: asset.isActive,
+        summaryText: asset.summaryText || "",
+      });
+    }
+  }, [asset, form]);
+
+  const onSubmit = (data: EditFormValues) => {
+    updateMutation.mutate(
+      {
+        id,
+        data: {
+          title: data.title || null,
+          url: data.url,
+          categoryId: data.categoryId || null,
+          isActive: data.isActive,
+          summaryText: data.summaryText || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetAssetQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getListAssetsQueryKey() });
+          setIsEditing(false);
+          toast({ title: "Asset updated successfully" });
+        },
+        onError: () => {
+          toast({ title: "Failed to update asset", variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleExtract = () => {
+    extractMutation.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetAssetQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getListAssetsQueryKey() });
+          toast({ title: "Content extraction triggered" });
+        },
+        onError: () => {
+          toast({ title: "Extraction failed", variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleCancelEdit = () => {
+    if (asset) {
+      form.reset({
+        title: asset.title || "",
+        url: asset.url,
+        categoryId: asset.categoryId || null,
+        isActive: asset.isActive,
+        summaryText: asset.summaryText || "",
+      });
+    }
+    setIsEditing(false);
+  };
+
+  if (!isValidId) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <p className="text-muted-foreground text-lg">Invalid asset link</p>
+          <Link href="/assets">
+            <Button variant="outline" className="rounded-xl">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Asset Library
+            </Button>
+          </Link>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (fetchError) {
+    const is404 = fetchError?.message?.includes("404") || fetchError?.message?.includes("not found");
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <p className="text-muted-foreground text-lg">
+            {is404 ? "Asset not found" : "Failed to load asset"}
+          </p>
+          {!is404 && (
+            <p className="text-sm text-muted-foreground">Please try again later.</p>
+          )}
+          <Link href="/assets">
+            <Button variant="outline" className="rounded-xl">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Asset Library
+            </Button>
+          </Link>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!asset) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <p className="text-muted-foreground text-lg">Asset not found</p>
+          <Link href="/assets">
+            <Button variant="outline" className="rounded-xl">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Asset Library
+            </Button>
+          </Link>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const categoryName = asset.categoryName || categories?.find((c) => c.id === asset.categoryId)?.name;
+
+  return (
+    <AppLayout>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/assets">
+              <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-display font-bold text-foreground">
+                {asset.title || "Untitled Asset"}
+              </h1>
+              <a
+                href={asset.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-primary hover:underline flex items-center gap-1 mt-0.5"
+              >
+                {asset.url}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl h-10"
+              onClick={handleExtract}
+              disabled={asset.extractionStatus === "processing" || extractMutation.isPending}
+            >
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${
+                  asset.extractionStatus === "processing" || extractMutation.isPending
+                    ? "animate-spin"
+                    : ""
+                }`}
+              />
+              Re-extract Content
+            </Button>
+            {!isEditing && (
+              <Button
+                className="rounded-xl h-10 bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all"
+                onClick={() => setIsEditing(true)}
+              >
+                <Pencil className="w-4 h-4 mr-2" /> Edit
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            {isEditing ? (
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-display">Edit Asset</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                      <FormField
+                        control={form.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Asset title" className="rounded-xl" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://..." className="rounded-xl" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                              <select
+                                className="w-full h-10 px-3 py-2 rounded-xl border border-input bg-background text-sm"
+                                onChange={(e) =>
+                                  field.onChange(e.target.value ? Number(e.target.value) : null)
+                                }
+                                value={field.value || ""}
+                              >
+                                <option value="">No category</option>
+                                {categories?.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="isActive"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <FormControl>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => field.onChange(!field.value)}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                    field.value ? "bg-green-500" : "bg-muted"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                      field.value ? "translate-x-6" : "translate-x-1"
+                                    }`}
+                                  />
+                                </button>
+                                <span className="text-sm text-muted-foreground">
+                                  {field.value ? "Active" : "Inactive"}
+                                </span>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="summaryText"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>AI Summary</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="AI-generated summary text..."
+                                className="rounded-xl min-h-[120px]"
+                                {...field}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button
+                          type="submit"
+                          disabled={updateMutation.isPending}
+                          className="rounded-xl bg-primary text-primary-foreground"
+                        >
+                          {updateMutation.isPending && (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          )}
+                          <Save className="w-4 h-4 mr-2" /> Save Changes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-xl"
+                          onClick={handleCancelEdit}
+                        >
+                          <X className="w-4 h-4 mr-2" /> Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <Card className="rounded-2xl border-border/50 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-display">Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                        <dt className="text-sm font-medium text-muted-foreground w-32 shrink-0">Title</dt>
+                        <dd className="text-sm text-foreground">{asset.title || "—"}</dd>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                        <dt className="text-sm font-medium text-muted-foreground w-32 shrink-0">URL</dt>
+                        <dd className="text-sm">
+                          <a
+                            href={asset.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1 break-all"
+                          >
+                            {asset.url}
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                          </a>
+                        </dd>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                        <dt className="text-sm font-medium text-muted-foreground w-32 shrink-0">Category</dt>
+                        <dd className="text-sm text-foreground">{categoryName || "—"}</dd>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                        <dt className="text-sm font-medium text-muted-foreground w-32 shrink-0">Status</dt>
+                        <dd>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              asset.isActive
+                                ? "bg-green-500/10 text-green-600"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {asset.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-border/50 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-display">AI Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {asset.summaryText ? (
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                        {asset.summaryText}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        No summary available. Click "Re-extract Content" to generate one.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-display">Suggested Image</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {asset.suggestedImageUrl ? (
+                  <div className="rounded-xl overflow-hidden border border-border/50">
+                    <img
+                      src={asset.suggestedImageUrl}
+                      alt={asset.title || "Suggested image"}
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground rounded-xl border-2 border-dashed border-border/50">
+                    <LinkIcon className="w-8 h-8 mb-2 opacity-50" />
+                    <p className="text-sm">No image available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-display">Extraction</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Status</span>
+                    <ExtractionStatusBadge status={asset.extractionStatus} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-border/50 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-display">Timestamps</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Created:</span>
+                    <span className="text-foreground">
+                      {format(new Date(asset.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Updated:</span>
+                    <span className="text-foreground">
+                      {format(new Date(asset.updatedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}

@@ -9,6 +9,7 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Assets from "@/pages/assets";
+import AssetDetail from "@/pages/asset-detail";
 import BrandAssets from "@/pages/brand-assets";
 import Campaigns from "@/pages/campaigns";
 import CampaignDetail from "@/pages/campaign-detail";
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/" component={Dashboard} />
       <Route path="/assets" component={Assets} />
+      <Route path="/assets/:id" component={AssetDetail} />
       <Route path="/brand-assets" component={BrandAssets} />
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/campaigns/:id" component={CampaignDetail} />

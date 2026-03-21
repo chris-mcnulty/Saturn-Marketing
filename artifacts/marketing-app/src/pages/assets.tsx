@@ -20,8 +20,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Search, Link as LinkIcon, Trash2, Edit, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Plus, Search, Link as LinkIcon, Trash2, Edit, RefreshCw, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 
 const createSchema = z.object({
   url: z.string().url("Must be a valid URL"),
@@ -34,6 +35,7 @@ export default function Assets() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: assets, isLoading } = useListAssets();
   const { data: categories } = useListCategories();
@@ -67,6 +69,9 @@ export default function Assets() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListAssetsQueryKey() });
         toast({ title: "Extraction triggered successfully" });
+      },
+      onError: () => {
+        toast({ title: "Extraction failed", variant: "destructive" });
       }
     });
   };
@@ -133,7 +138,7 @@ export default function Assets() {
                   </tr>
                 ) : (
                   filteredAssets?.map(asset => (
-                    <tr key={asset.id} className="hover:bg-secondary/20 transition-colors">
+                    <tr key={asset.id} className="hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => navigate(`/assets/${asset.id}`)}>
                       <td className="px-6 py-4 max-w-[300px]">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
@@ -145,7 +150,7 @@ export default function Assets() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-foreground truncate">{asset.title || "Untitled Asset"}</p>
-                            <a href={asset.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate block max-w-xs">
+                            <a href={asset.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-xs text-primary hover:underline truncate block max-w-xs">
                               {asset.url}
                             </a>
                           </div>
@@ -153,7 +158,7 @@ export default function Assets() {
                       </td>
                       <td className="px-6 py-4">
                         <button 
-                          onClick={() => toggleActive(asset.id, asset.isActive)}
+                          onClick={(e) => { e.stopPropagation(); toggleActive(asset.id, asset.isActive); }}
                           className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                             asset.isActive ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : "bg-muted text-muted-foreground hover:bg-muted/80"
                           }`}
@@ -173,7 +178,7 @@ export default function Assets() {
                       <td className="px-6 py-4 text-muted-foreground">
                         {format(new Date(asset.createdAt), "MMM d, yyyy")}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
                           <Button 
                             variant="ghost" 
@@ -184,6 +189,14 @@ export default function Assets() {
                           >
                             <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${asset.extractionStatus === 'processing' ? 'animate-spin' : ''}`} /> 
                             Extract
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 text-xs font-medium"
+                            onClick={() => navigate(`/assets/${asset.id}`)}
+                          >
+                            <Eye className="w-3.5 h-3.5 mr-1.5" /> View
                           </Button>
                           <Button 
                             variant="ghost" 
