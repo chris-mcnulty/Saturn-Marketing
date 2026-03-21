@@ -323,6 +323,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/Asset"
 
+  /assets/export-csv:
+    get:
+      operationId: exportAssetsCsv
+      tags: [assets]
+      summary: Export tenant assets as CSV file
+      responses:
+        "200":
+          description: CSV file download
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /assets/import-csv:
+    post:
+      operationId: importAssetsCsv
+      tags: [assets]
+      summary: Upload and validate a CSV file for asset import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportCsvBody"
+      responses:
+        "200":
+          description: Validation result with parsed rows and unknown categories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportCsvValidationResult"
+
+  /assets/confirm-import:
+    post:
+      operationId: confirmAssetsImport
+      tags: [assets]
+      summary: Confirm asset import with category decisions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmImportBody"
+      responses:
+        "200":
+          description: Import result summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResultSummary"
+
   /brand-assets:
     get:
       operationId: listBrandAssets
@@ -1573,3 +1624,106 @@ components:
         - dateTime
         - accountId
         - assetId
+
+    ImportCsvBody:
+      type: object
+      properties:
+        csvContent:
+          type: string
+      required:
+        - csvContent
+
+    ImportCsvRow:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        rowNumber:
+          type: integer
+        error:
+          type: ["string", "null"]
+      required:
+        - url
+        - active
+        - rowNumber
+
+    ImportCsvValidationResult:
+      type: object
+      properties:
+        validRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportCsvRow"
+        unknownCategories:
+          type: array
+          items:
+            type: string
+        duplicateUrls:
+          type: array
+          items:
+            type: string
+        errorRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportCsvRow"
+      required:
+        - validRows
+        - unknownCategories
+        - duplicateUrls
+        - errorRows
+
+    CategoryDecision:
+      type: object
+      properties:
+        categoryName:
+          type: string
+        action:
+          type: string
+          enum: [create, skip]
+      required:
+        - categoryName
+        - action
+
+    ConfirmImportBody:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportCsvRow"
+        categoryDecisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryDecision"
+      required:
+        - rows
+        - categoryDecisions
+
+    ImportResultSummary:
+      type: object
+      properties:
+        created:
+          type: integer
+        skipped:
+          type: integer
+        failed:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - created
+        - skipped
+        - failed
+        - errors

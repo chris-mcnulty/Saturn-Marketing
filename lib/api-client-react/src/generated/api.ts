@@ -26,6 +26,7 @@ import type {
   CampaignAssetDetail,
   CampaignDetail,
   Category,
+  ConfirmImportBody,
   CreateAssetBody,
   CreateBrandAssetBody,
   CreateCampaignBody,
@@ -36,6 +37,9 @@ import type {
   GeneratedPost,
   GroundingDoc,
   HealthStatus,
+  ImportCsvBody,
+  ImportCsvValidationResult,
+  ImportResultSummary,
   ListAssetsParams,
   ListCampaignsParams,
   LoginBody,
@@ -1306,6 +1310,253 @@ export const useExtractAssetContent = <
   TContext
 > => {
   return useMutation(getExtractAssetContentMutationOptions(options));
+};
+
+/**
+ * @summary Export tenant assets as CSV file
+ */
+export const getExportAssetsCsvUrl = () => {
+  return `/api/assets/export-csv`;
+};
+
+export const exportAssetsCsv = async (
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getExportAssetsCsvUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportAssetsCsvQueryKey = () => {
+  return [`/api/assets/export-csv`] as const;
+};
+
+export const getExportAssetsCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportAssetsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportAssetsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportAssetsCsvQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof exportAssetsCsv>>> = ({
+    signal,
+  }) => exportAssetsCsv({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportAssetsCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportAssetsCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportAssetsCsv>>
+>;
+export type ExportAssetsCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export tenant assets as CSV file
+ */
+
+export function useExportAssetsCsv<
+  TData = Awaited<ReturnType<typeof exportAssetsCsv>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof exportAssetsCsv>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportAssetsCsvQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Upload and validate a CSV file for asset import
+ */
+export const getImportAssetsCsvUrl = () => {
+  return `/api/assets/import-csv`;
+};
+
+export const importAssetsCsv = async (
+  importCsvBody: ImportCsvBody,
+  options?: RequestInit,
+): Promise<ImportCsvValidationResult> => {
+  return customFetch<ImportCsvValidationResult>(getImportAssetsCsvUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importCsvBody),
+  });
+};
+
+export const getImportAssetsCsvMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importAssetsCsv>>,
+    TError,
+    { data: BodyType<ImportCsvBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importAssetsCsv>>,
+  TError,
+  { data: BodyType<ImportCsvBody> },
+  TContext
+> => {
+  const mutationKey = ["importAssetsCsv"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importAssetsCsv>>,
+    { data: BodyType<ImportCsvBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importAssetsCsv(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportAssetsCsvMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importAssetsCsv>>
+>;
+export type ImportAssetsCsvMutationBody = BodyType<ImportCsvBody>;
+export type ImportAssetsCsvMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Upload and validate a CSV file for asset import
+ */
+export const useImportAssetsCsv = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importAssetsCsv>>,
+    TError,
+    { data: BodyType<ImportCsvBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importAssetsCsv>>,
+  TError,
+  { data: BodyType<ImportCsvBody> },
+  TContext
+> => {
+  return useMutation(getImportAssetsCsvMutationOptions(options));
+};
+
+/**
+ * @summary Confirm asset import with category decisions
+ */
+export const getConfirmAssetsImportUrl = () => {
+  return `/api/assets/confirm-import`;
+};
+
+export const confirmAssetsImport = async (
+  confirmImportBody: ConfirmImportBody,
+  options?: RequestInit,
+): Promise<ImportResultSummary> => {
+  return customFetch<ImportResultSummary>(getConfirmAssetsImportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(confirmImportBody),
+  });
+};
+
+export const getConfirmAssetsImportMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmAssetsImport>>,
+    TError,
+    { data: BodyType<ConfirmImportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmAssetsImport>>,
+  TError,
+  { data: BodyType<ConfirmImportBody> },
+  TContext
+> => {
+  const mutationKey = ["confirmAssetsImport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmAssetsImport>>,
+    { data: BodyType<ConfirmImportBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return confirmAssetsImport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmAssetsImportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmAssetsImport>>
+>;
+export type ConfirmAssetsImportMutationBody = BodyType<ConfirmImportBody>;
+export type ConfirmAssetsImportMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Confirm asset import with category decisions
+ */
+export const useConfirmAssetsImport = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmAssetsImport>>,
+    TError,
+    { data: BodyType<ConfirmImportBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmAssetsImport>>,
+  TError,
+  { data: BodyType<ConfirmImportBody> },
+  TContext
+> => {
+  return useMutation(getConfirmAssetsImportMutationOptions(options));
 };
 
 /**

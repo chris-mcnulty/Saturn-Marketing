@@ -417,6 +417,58 @@ export interface GeneratedPost {
   assetTitle?: string | null;
 }
 
+export interface ImportCsvBody {
+  csvContent: string;
+}
+
+export interface ImportCsvRow {
+  url: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  category?: string | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  active: boolean;
+  rowNumber: number;
+  /** @nullable */
+  error?: string | null;
+}
+
+export interface ImportCsvValidationResult {
+  validRows: ImportCsvRow[];
+  unknownCategories: string[];
+  duplicateUrls: string[];
+  errorRows: ImportCsvRow[];
+}
+
+export type CategoryDecisionAction =
+  (typeof CategoryDecisionAction)[keyof typeof CategoryDecisionAction];
+
+export const CategoryDecisionAction = {
+  create: "create",
+  skip: "skip",
+} as const;
+
+export interface CategoryDecision {
+  categoryName: string;
+  action: CategoryDecisionAction;
+}
+
+export interface ConfirmImportBody {
+  rows: ImportCsvRow[];
+  categoryDecisions: CategoryDecision[];
+}
+
+export interface ImportResultSummary {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+}
+
 export type ListAssetsParams = {
   categoryId?: number;
   isActive?: boolean;

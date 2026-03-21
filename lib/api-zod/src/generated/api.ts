@@ -261,6 +261,73 @@ export const ExtractAssetContentResponse = zod.object({
 });
 
 /**
+ * @summary Upload and validate a CSV file for asset import
+ */
+export const ImportAssetsCsvBody = zod.object({
+  csvContent: zod.string(),
+});
+
+export const ImportAssetsCsvResponse = zod.object({
+  validRows: zod.array(
+    zod.object({
+      url: zod.string(),
+      title: zod.string().nullish(),
+      description: zod.string().nullish(),
+      category: zod.string().nullish(),
+      imageUrl: zod.string().nullish(),
+      active: zod.boolean(),
+      rowNumber: zod.number(),
+      error: zod.string().nullish(),
+    }),
+  ),
+  unknownCategories: zod.array(zod.string()),
+  duplicateUrls: zod.array(zod.string()),
+  errorRows: zod.array(
+    zod.object({
+      url: zod.string(),
+      title: zod.string().nullish(),
+      description: zod.string().nullish(),
+      category: zod.string().nullish(),
+      imageUrl: zod.string().nullish(),
+      active: zod.boolean(),
+      rowNumber: zod.number(),
+      error: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Confirm asset import with category decisions
+ */
+export const ConfirmAssetsImportBody = zod.object({
+  rows: zod.array(
+    zod.object({
+      url: zod.string(),
+      title: zod.string().nullish(),
+      description: zod.string().nullish(),
+      category: zod.string().nullish(),
+      imageUrl: zod.string().nullish(),
+      active: zod.boolean(),
+      rowNumber: zod.number(),
+      error: zod.string().nullish(),
+    }),
+  ),
+  categoryDecisions: zod.array(
+    zod.object({
+      categoryName: zod.string(),
+      action: zod.enum(["create", "skip"]),
+    }),
+  ),
+});
+
+export const ConfirmAssetsImportResponse = zod.object({
+  created: zod.number(),
+  skipped: zod.number(),
+  failed: zod.number(),
+  errors: zod.array(zod.string()),
+});
+
+/**
  * @summary List brand-approved visual assets
  */
 export const ListBrandAssetsResponseItem = zod.object({
