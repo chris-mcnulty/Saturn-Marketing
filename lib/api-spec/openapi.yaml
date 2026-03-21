@@ -3,13 +3,32 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Multi-Tenant Marketing Application API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: tenants
+    description: Tenant operations
+  - name: categories
+    description: Category operations
+  - name: assets
+    description: Content asset operations
+  - name: brandAssets
+    description: Brand asset library operations
+  - name: campaigns
+    description: Campaign operations
+  - name: campaignAssets
+    description: Campaign-asset association operations
+  - name: socialAccounts
+    description: Social account operations
+  - name: csv
+    description: CSV generation operations
+
 paths:
   /healthz:
     get:
@@ -24,6 +43,802 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user and tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List categories for the current tenant
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a new category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryBody"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryBody"
+      responses:
+        "200":
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Category deleted
+
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List content assets
+      parameters:
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Add a new content asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetBody"
+      responses:
+        "201":
+          description: Asset created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /assets/{id}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get a single asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssetBody"
+      responses:
+        "200":
+          description: Asset updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    delete:
+      operationId: deleteAsset
+      tags: [assets]
+      summary: Delete an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Asset deleted
+
+  /assets/{id}/extract:
+    post:
+      operationId: extractAssetContent
+      tags: [assets]
+      summary: Run content extraction on an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Extraction result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /brand-assets:
+    get:
+      operationId: listBrandAssets
+      tags: [brandAssets]
+      summary: List brand-approved visual assets
+      responses:
+        "200":
+          description: List of brand assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrandAsset"
+    post:
+      operationId: createBrandAsset
+      tags: [brandAssets]
+      summary: Add a brand asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBrandAssetBody"
+      responses:
+        "201":
+          description: Brand asset created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandAsset"
+
+  /brand-assets/{id}:
+    patch:
+      operationId: updateBrandAsset
+      tags: [brandAssets]
+      summary: Update a brand asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBrandAssetBody"
+      responses:
+        "200":
+          description: Brand asset updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandAsset"
+    delete:
+      operationId: deleteBrandAsset
+      tags: [brandAssets]
+      summary: Delete a brand asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Brand asset deleted
+
+  /campaigns:
+    get:
+      operationId: listCampaigns
+      tags: [campaigns]
+      summary: List campaigns
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, scheduled, active, paused, completed]
+      responses:
+        "200":
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Campaign"
+    post:
+      operationId: createCampaign
+      tags: [campaigns]
+      summary: Create a new campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCampaignBody"
+      responses:
+        "201":
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+
+  /campaigns/{id}:
+    get:
+      operationId: getCampaign
+      tags: [campaigns]
+      summary: Get a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateCampaign
+      tags: [campaigns]
+      summary: Update a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCampaignBody"
+      responses:
+        "200":
+          description: Campaign updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Campaign"
+    delete:
+      operationId: deleteCampaign
+      tags: [campaigns]
+      summary: Delete a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Campaign deleted
+
+  /campaigns/{id}/assets:
+    get:
+      operationId: listCampaignAssets
+      tags: [campaignAssets]
+      summary: List assets in a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Campaign assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampaignAssetDetail"
+    post:
+      operationId: addCampaignAsset
+      tags: [campaignAssets]
+      summary: Add an asset to a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCampaignAssetBody"
+      responses:
+        "201":
+          description: Asset added to campaign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignAssetDetail"
+
+  /campaigns/{campaignId}/assets/{assetId}:
+    patch:
+      operationId: updateCampaignAsset
+      tags: [campaignAssets]
+      summary: Update campaign-asset overrides
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCampaignAssetBody"
+      responses:
+        "200":
+          description: Override updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampaignAssetDetail"
+    delete:
+      operationId: removeCampaignAsset
+      tags: [campaignAssets]
+      summary: Remove an asset from a campaign
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Asset removed from campaign
+
+  /social-accounts:
+    get:
+      operationId: listSocialAccounts
+      tags: [socialAccounts]
+      summary: List social accounts for the current tenant
+      responses:
+        "200":
+          description: List of social accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialAccount"
+    post:
+      operationId: createSocialAccount
+      tags: [socialAccounts]
+      summary: Add a social account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSocialAccountBody"
+      responses:
+        "201":
+          description: Social account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+
+  /social-accounts/{id}:
+    patch:
+      operationId: updateSocialAccount
+      tags: [socialAccounts]
+      summary: Update a social account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSocialAccountBody"
+      responses:
+        "200":
+          description: Social account updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+    delete:
+      operationId: deleteSocialAccount
+      tags: [socialAccounts]
+      summary: Delete a social account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Social account deleted
+
+  /campaigns/{id}/generate-posts:
+    post:
+      operationId: generateCampaignPosts
+      tags: [csv]
+      summary: Generate posts for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Generated posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeneratedPost"
+
+  /campaigns/{id}/export-csv:
+    post:
+      operationId: exportCampaignCsv
+      tags: [csv]
+      summary: Export campaign posts as SocialPilot CSV
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /campaigns/{id}/social-accounts:
+    get:
+      operationId: listCampaignSocialAccounts
+      tags: [campaigns]
+      summary: List social accounts for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Social accounts for campaign
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SocialAccount"
+    post:
+      operationId: addCampaignSocialAccount
+      tags: [campaigns]
+      summary: Add a social account to a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCampaignSocialAccountBody"
+      responses:
+        "201":
+          description: Social account added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /campaigns/{campaignId}/social-accounts/{accountId}:
+    delete:
+      operationId: removeCampaignSocialAccount
+      tags: [campaigns]
+      summary: Remove a social account from a campaign
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Social account removed
+
+  /tenant:
+    get:
+      operationId: getTenant
+      tags: [tenants]
+      summary: Get current tenant info
+      responses:
+        "200":
+          description: Tenant info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+    patch:
+      operationId: updateTenant
+      tags: [tenants]
+      summary: Update tenant info
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTenantBody"
+      responses:
+        "200":
+          description: Tenant updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+
+  /tenant/users:
+    get:
+      operationId: listTenantUsers
+      tags: [tenants]
+      summary: List users in current tenant
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /tenant/users/{id}:
+    patch:
+      operationId: updateTenantUser
+      tags: [tenants]
+      summary: Update a tenant user role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: removeTenantUser
+      tags: [tenants]
+      summary: Remove a user from tenant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: User removed
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +849,543 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+        organizationName:
+          type: string
+      required:
+        - email
+        - password
+        - name
+        - organizationName
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tenant:
+          $ref: "#/components/schemas/Tenant"
+      required:
+        - user
+        - tenant
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, standard]
+        tenantId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - role
+        - tenantId
+        - createdAt
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+
+    UpdateTenantBody:
+      type: object
+      properties:
+        name:
+          type: string
+
+    UpdateUserBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [admin, standard]
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tenantId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - tenantId
+        - createdAt
+
+    CreateCategoryBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    UpdateCategoryBody:
+      type: object
+      properties:
+        name:
+          type: string
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        url:
+          type: string
+        title:
+          type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        summaryText:
+          type: ["string", "null"]
+        suggestedImageUrl:
+          type: ["string", "null"]
+        extractionStatus:
+          type: string
+          enum: [pending, processing, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - url
+        - isActive
+        - extractionStatus
+        - createdAt
+        - updatedAt
+
+    CreateAssetBody:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        categoryId:
+          type: integer
+      required:
+        - url
+
+    UpdateAssetBody:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
+        isActive:
+          type: boolean
+        summaryText:
+          type: ["string", "null"]
+        suggestedImageUrl:
+          type: ["string", "null"]
+
+    BrandAsset:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        imageUrl:
+          type: string
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        tags:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - imageUrl
+        - createdAt
+
+    CreateBrandAssetBody:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        tags:
+          type: string
+      required:
+        - imageUrl
+
+    UpdateBrandAssetBody:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        tags:
+          type: ["string", "null"]
+
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        startDate:
+          type: string
+          format: date
+        durationDays:
+          type: integer
+        postsPerDay:
+          type: integer
+        postingTimes:
+          type: ["string", "null"]
+        hashtags:
+          type: ["string", "null"]
+        repetitionIntervalDays:
+          type: integer
+        status:
+          type: string
+          enum: [draft, scheduled, active, paused, completed]
+        alwaysIncludeImages:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - name
+        - startDate
+        - durationDays
+        - postsPerDay
+        - repetitionIntervalDays
+        - status
+        - alwaysIncludeImages
+        - createdAt
+        - updatedAt
+
+    CampaignDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        startDate:
+          type: string
+          format: date
+        durationDays:
+          type: integer
+        postsPerDay:
+          type: integer
+        postingTimes:
+          type: ["string", "null"]
+        hashtags:
+          type: ["string", "null"]
+        repetitionIntervalDays:
+          type: integer
+        status:
+          type: string
+          enum: [draft, scheduled, active, paused, completed]
+        alwaysIncludeImages:
+          type: boolean
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/CampaignAssetDetail"
+        socialAccounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/SocialAccount"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - name
+        - startDate
+        - durationDays
+        - postsPerDay
+        - repetitionIntervalDays
+        - status
+        - alwaysIncludeImages
+        - assets
+        - socialAccounts
+        - createdAt
+        - updatedAt
+
+    CreateCampaignBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        durationDays:
+          type: integer
+          minimum: 1
+        postsPerDay:
+          type: integer
+          minimum: 1
+        postingTimes:
+          type: string
+        hashtags:
+          type: string
+        repetitionIntervalDays:
+          type: integer
+          minimum: 1
+        alwaysIncludeImages:
+          type: boolean
+      required:
+        - name
+        - startDate
+        - durationDays
+        - postsPerDay
+
+    UpdateCampaignBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        startDate:
+          type: string
+          format: date
+        durationDays:
+          type: integer
+          minimum: 1
+        postsPerDay:
+          type: integer
+          minimum: 1
+        postingTimes:
+          type: ["string", "null"]
+        hashtags:
+          type: ["string", "null"]
+        repetitionIntervalDays:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [draft, scheduled, active, paused, completed]
+        alwaysIncludeImages:
+          type: boolean
+
+    CampaignAssetDetail:
+      type: object
+      properties:
+        campaignId:
+          type: integer
+        assetId:
+          type: integer
+        overrideSummaryText:
+          type: ["string", "null"]
+        overrideImageUrl:
+          type: ["string", "null"]
+        asset:
+          $ref: "#/components/schemas/Asset"
+      required:
+        - campaignId
+        - assetId
+        - asset
+
+    AddCampaignAssetBody:
+      type: object
+      properties:
+        assetId:
+          type: integer
+      required:
+        - assetId
+
+    UpdateCampaignAssetBody:
+      type: object
+      properties:
+        overrideSummaryText:
+          type: ["string", "null"]
+        overrideImageUrl:
+          type: ["string", "null"]
+
+    SocialAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        platform:
+          type: string
+        accountName:
+          type: string
+        socialPilotAccountId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - platform
+        - accountName
+        - socialPilotAccountId
+        - createdAt
+
+    CreateSocialAccountBody:
+      type: object
+      properties:
+        platform:
+          type: string
+        accountName:
+          type: string
+        socialPilotAccountId:
+          type: string
+      required:
+        - platform
+        - accountName
+        - socialPilotAccountId
+
+    UpdateSocialAccountBody:
+      type: object
+      properties:
+        platform:
+          type: string
+        accountName:
+          type: string
+        socialPilotAccountId:
+          type: string
+
+    AddCampaignSocialAccountBody:
+      type: object
+      properties:
+        socialAccountId:
+          type: integer
+      required:
+        - socialAccountId
+
+    GeneratedPost:
+      type: object
+      properties:
+        postContent:
+          type: string
+        imageUrls:
+          type: ["string", "null"]
+        dateTime:
+          type: string
+        accountId:
+          type: string
+        firstComment:
+          type: ["string", "null"]
+        tags:
+          type: ["string", "null"]
+        assetId:
+          type: integer
+        assetTitle:
+          type: ["string", "null"]
+      required:
+        - postContent
+        - dateTime
+        - accountId
+        - assetId

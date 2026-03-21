@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+Multi-tenant marketing SaaS application (Synozur) for generating and managing social media posts across multiple organizations. Built as a pnpm workspace monorepo using TypeScript.
 
 ## Stack
 
@@ -15,24 +15,38 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Frontend**: React + Vite + TailwindCSS + Wouter + TanStack React Query
+- **AI**: OpenAI via Replit AI Integrations (gpt-4o-mini for content extraction and post variations)
+- **Auth**: Session-based (express-session + bcryptjs), no JWT
+
+## Core Features
+
+- **Multi-tenant auth**: Register creates organization + admin user + default categories. Session-based with role support (admin/standard).
+- **Content Asset Library**: Add URLs, AI-powered content extraction (cheerio + OpenAI for summaries), category tagging, active/inactive toggle.
+- **Brand Asset Library**: Manage brand images with titles, descriptions, and tags.
+- **Campaign Management**: Create campaigns with scheduling (start date, duration, posts/day, posting times), assign assets and social accounts.
+- **SocialPilot CSV Export**: Generate bulk posts with AI-powered variation for repeated content. Max 500 posts per export.
+- **Social Account Management**: Configure social media accounts with SocialPilot account IDs.
+- **Settings**: Manage organization profile, content categories, and team members.
 
 ## Structure
 
 ```text
 artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
+├── artifacts/
+│   ├── api-server/         # Express API server (port 8080)
+│   └── marketing-app/      # React + Vite frontend
+├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+│   ├── db/                 # Drizzle ORM schema + DB connection
+│   └── integrations-openai-ai-server/  # OpenAI AI integration
+├── scripts/
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+├── tsconfig.json
+└── package.json
 ```
 
 ## TypeScript & Composite Projects
@@ -52,45 +66,49 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+Express 5 API server with session-based auth, multi-tenant data isolation, AI content extraction, and SocialPilot CSV generation.
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, express-session, routes at `/api`
+- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv
+- Middleware: `src/middlewares/auth.ts` — `requireAuth` (session check), `requireAdmin` (role check)
+- Content Extractor: `src/lib/contentExtractor.ts` — cheerio + OpenAI for URL metadata extraction
+- Depends on: `@workspace/db`, `@workspace/api-zod`, `@workspace/integrations-openai-ai-server`
+
+### `artifacts/marketing-app` (`@workspace/marketing-app`)
+
+React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
+
+- Pages: login, register, dashboard, assets, brand-assets, campaigns, campaign-detail, social-accounts, settings
+- Layout: sidebar navigation with mobile responsive drawer
+- Auth context: auto-redirects to login when unauthenticated
+- API client: uses generated React Query hooks from `@workspace/api-client-react` with `credentials: "include"` for session cookies
 
 ### `lib/db` (`@workspace/db`)
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+Database layer using Drizzle ORM with PostgreSQL.
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+Schema tables: tenants, users, categories, assets, brandAssets, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
+OpenAPI 3.1 spec and Orval codegen config. Run codegen: `pnpm --filter @workspace/api-spec run codegen`
 
 ### `lib/api-zod` (`@workspace/api-zod`)
 
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
+Generated Zod schemas from the OpenAPI spec. Used by api-server for request validation.
 
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+Generated React Query hooks and fetch client from the OpenAPI spec. Custom fetch includes `credentials: "include"` for session cookies.
 
 ### `scripts` (`@workspace/scripts`)
 
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+Utility scripts package. Run via `pnpm --filter @workspace/scripts run <script>`.
+
+## Environment Variables
+
+- `DATABASE_URL` — PostgreSQL connection string (auto-provided by Replit)
+- `SESSION_SECRET` — Secret for express-session (has fallback default)
+- `AI_INTEGRATIONS_OPENAI_BASE_URL` — Auto-set by Replit AI Integrations
+- `AI_INTEGRATIONS_OPENAI_API_KEY` — Auto-set by Replit AI Integrations

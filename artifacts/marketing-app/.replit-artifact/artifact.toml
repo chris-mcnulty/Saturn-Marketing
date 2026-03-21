@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Marketing Application"
+version = "1.0.0"
+id = "artifacts/marketing-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23088
+
+[services.development]
+run = "pnpm --filter @workspace/marketing-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/marketing-app", "run", "build" ]
+publicDir = "artifacts/marketing-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23088"
+BASE_PATH = "/"
