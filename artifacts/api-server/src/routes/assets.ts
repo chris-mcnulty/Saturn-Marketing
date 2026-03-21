@@ -170,17 +170,19 @@ router.get("/assets/export-csv", requireAuth, async (req, res): Promise<void> =>
     .where(eq(assetsTable.tenantId, req.tenantId!))
     .orderBy(assetsTable.createdAt);
 
-  const headers = ["URL", "Title", "Description", "Category", "Image URL", "Active"];
+  const headers = ["URL", "Title", "Description", "Category", "Image URL", "ACTIVE", "Captured"];
   const csvRows = [headers.join(",")];
 
   for (const asset of assets) {
+    const captured = asset.createdAt ? new Date(asset.createdAt).toISOString().split("T")[0] : "";
     const row = [
       escapeCsvField(asset.url || ""),
       escapeCsvField(asset.title || ""),
       escapeCsvField(asset.summaryText || ""),
       escapeCsvField(asset.categoryName || ""),
       escapeCsvField(asset.suggestedImageUrl || ""),
-      asset.isActive ? "true" : "false",
+      asset.isActive ? "TRUE" : "FALSE",
+      escapeCsvField(captured),
     ];
     csvRows.push(row.join(","));
   }
