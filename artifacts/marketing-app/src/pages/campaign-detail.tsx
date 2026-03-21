@@ -186,8 +186,12 @@ export default function CampaignDetail() {
               >
                 {['draft', 'scheduled', 'active', 'paused', 'completed'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <Button onClick={handleGenerate} className="h-11 rounded-xl bg-gradient-to-r from-accent to-primary text-white shadow-lg shadow-primary/20 hover:shadow-primary/40">
-                <Wand2 className="w-4 h-4 mr-2" /> Generate Posts
+              <Button onClick={handleGenerate} disabled={generatePostsMut.isPending} className="h-11 rounded-xl bg-gradient-to-r from-accent to-primary text-white shadow-lg shadow-primary/20 hover:shadow-primary/40">
+                {generatePostsMut.isPending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                ) : (
+                  <><Wand2 className="w-4 h-4 mr-2" /> Generate Posts</>
+                )}
               </Button>
             </div>
           </div>
@@ -317,12 +321,22 @@ export default function CampaignDetail() {
                 )}
               </div>
               
-              {generatedPosts.length === 0 ? (
+              {generatePostsMut.isPending && (
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <div>
+                    <p className="font-medium text-sm">Generating posts...</p>
+                    <p className="text-xs text-muted-foreground">AI is creating unique variations and hashtags for each asset. This may take 20–30 seconds.</p>
+                  </div>
+                </div>
+              )}
+
+              {!generatePostsMut.isPending && generatedPosts.length === 0 ? (
                 <div className="text-center py-16 border-2 border-dashed rounded-2xl bg-secondary/10">
                   <p className="text-muted-foreground mb-4">Click 'Generate Posts' to preview the campaign schedule.</p>
                   <Button onClick={handleGenerate} variant="secondary">Generate Now</Button>
                 </div>
-              ) : (
+              ) : generatedPosts.length > 0 ? (
                 <div className="space-y-4">
                   {generatedPosts.map((post, i) => (
                     <Card key={i} className="p-4 rounded-2xl border-border/50">
@@ -352,7 +366,7 @@ export default function CampaignDetail() {
                     </Card>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>
