@@ -19,4 +19,9 @@ export interface CreateCampaignBody {
   /** @minimum 1 */
   repetitionIntervalDays?: number;
   alwaysIncludeImages?: boolean;
+  businessHoursOnly?: boolean;
+  businessHoursStart?: string;
+  businessHoursEnd?: string;
+  includeSaturday?: boolean;
+  includeSunday?: boolean;
 }

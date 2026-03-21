@@ -25,6 +25,11 @@ export interface CampaignDetail {
   repetitionIntervalDays: number;
   status: CampaignDetailStatus;
   alwaysIncludeImages: boolean;
+  businessHoursOnly: boolean;
+  businessHoursStart: string;
+  businessHoursEnd: string;
+  includeSaturday: boolean;
+  includeSunday: boolean;
   assets: CampaignAssetDetail[];
   socialAccounts: SocialAccount[];
   createdAt: Date;

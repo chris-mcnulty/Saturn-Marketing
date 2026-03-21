@@ -225,13 +225,35 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
   const posts: PostSlot[] = [];
   const assetUsageCount = new Map<number, number>();
 
+  const includeSaturday = campaign.includeSaturday ?? true;
+  const includeSunday = campaign.includeSunday ?? true;
+
   for (let day = 0; day < campaign.durationDays; day++) {
     for (let postIdx = 0; postIdx < campaign.postsPerDay; postIdx++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(currentDate.getDate() + day);
 
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek === 0 && !includeSunday) continue;
+      if (dayOfWeek === 6 && !includeSaturday) continue;
+
       const timeStr = postingTimesArr[postIdx % postingTimesArr.length] || "09:00";
-      const [hours, minutes] = timeStr.split(":").map(Number);
+      let [hours, minutes] = timeStr.split(":").map(Number);
+
+      if (campaign.businessHoursOnly) {
+        const [startH, startM] = (campaign.businessHoursStart || "09:00").split(":").map(Number);
+        const [endH, endM] = (campaign.businessHoursEnd || "17:00").split(":").map(Number);
+        const timeVal = (hours || 9) * 60 + (minutes || 0);
+        const startVal = startH * 60 + startM;
+        const endVal = endH * 60 + endM;
+        if (timeVal < startVal) { hours = startH; minutes = startM; }
+        if (timeVal >= endVal) {
+          const lastMinute = endVal - 1;
+          hours = Math.floor(lastMinute / 60);
+          minutes = lastMinute % 60;
+        }
+      }
+
       currentDate.setHours(hours || 9, minutes || 0, 0, 0);
 
       const dateTimeStr = formatDateForSocialPilot(currentDate);

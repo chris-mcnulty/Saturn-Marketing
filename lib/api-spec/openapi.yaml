@@ -1498,6 +1498,16 @@ components:
           enum: [draft, scheduled, active, paused, completed]
         alwaysIncludeImages:
           type: boolean
+        businessHoursOnly:
+          type: boolean
+        businessHoursStart:
+          type: string
+        businessHoursEnd:
+          type: string
+        includeSaturday:
+          type: boolean
+        includeSunday:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -1514,6 +1524,11 @@ components:
         - repetitionIntervalDays
         - status
         - alwaysIncludeImages
+        - businessHoursOnly
+        - businessHoursStart
+        - businessHoursEnd
+        - includeSaturday
+        - includeSunday
         - createdAt
         - updatedAt
 
@@ -1546,6 +1561,16 @@ components:
           enum: [draft, scheduled, active, paused, completed]
         alwaysIncludeImages:
           type: boolean
+        businessHoursOnly:
+          type: boolean
+        businessHoursStart:
+          type: string
+        businessHoursEnd:
+          type: string
+        includeSaturday:
+          type: boolean
+        includeSunday:
+          type: boolean
         assets:
           type: array
           items:
@@ -1570,6 +1595,11 @@ components:
         - repetitionIntervalDays
         - status
         - alwaysIncludeImages
+        - businessHoursOnly
+        - businessHoursStart
+        - businessHoursEnd
+        - includeSaturday
+        - includeSunday
         - assets
         - socialAccounts
         - createdAt
@@ -1599,6 +1629,16 @@ components:
           type: integer
           minimum: 1
         alwaysIncludeImages:
+          type: boolean
+        businessHoursOnly:
+          type: boolean
+        businessHoursStart:
+          type: string
+        businessHoursEnd:
+          type: string
+        includeSaturday:
+          type: boolean
+        includeSunday:
           type: boolean
       required:
         - name
@@ -1633,6 +1673,16 @@ components:
           type: string
           enum: [draft, scheduled, active, paused, completed]
         alwaysIncludeImages:
+          type: boolean
+        businessHoursOnly:
+          type: boolean
+        businessHoursStart:
+          type: string
+        businessHoursEnd:
+          type: string
+        includeSaturday:
+          type: boolean
+        includeSunday:
           type: boolean
 
     CampaignAssetDetail:

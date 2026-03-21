@@ -24,4 +24,9 @@ export interface UpdateCampaignBody {
   repetitionIntervalDays?: number;
   status?: UpdateCampaignBodyStatus;
   alwaysIncludeImages?: boolean;
+  businessHoursOnly?: boolean;
+  businessHoursStart?: string;
+  businessHoursEnd?: string;
+  includeSaturday?: boolean;
+  includeSunday?: boolean;
 }

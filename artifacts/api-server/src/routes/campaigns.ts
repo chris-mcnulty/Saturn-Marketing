@@ -71,6 +71,49 @@ router.post("/campaigns", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const isValidTime = (t: string) => {
+    if (!/^\d{2}:\d{2}$/.test(t)) return false;
+    const [h, m] = t.split(":").map(Number);
+    return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+  };
+
+  if (parsed.data.postingTimes) {
+    const times = parsed.data.postingTimes.split(",").map((t: string) => t.trim()).filter(Boolean);
+    for (const t of times) {
+      if (!isValidTime(t)) {
+        res.status(400).json({ error: `Invalid posting time format: ${t}. Must be HH:mm (00:00–23:59)` });
+        return;
+      }
+    }
+  }
+
+  const bhStart = parsed.data.businessHoursStart || "09:00";
+  const bhEnd = parsed.data.businessHoursEnd || "17:00";
+  if (parsed.data.businessHoursStart && !isValidTime(bhStart)) {
+    res.status(400).json({ error: "Business hours start must be in valid HH:mm format (00:00–23:59)" });
+    return;
+  }
+  if (parsed.data.businessHoursEnd && !isValidTime(bhEnd)) {
+    res.status(400).json({ error: "Business hours end must be in valid HH:mm format (00:00–23:59)" });
+    return;
+  }
+
+  if (parsed.data.businessHoursOnly) {
+    if (bhStart >= bhEnd) {
+      res.status(400).json({ error: "Business hours start must be before end" });
+      return;
+    }
+    if (parsed.data.postingTimes) {
+      const times = parsed.data.postingTimes.split(",").map((t: string) => t.trim()).filter(Boolean);
+      for (const t of times) {
+        if (t < bhStart || t >= bhEnd) {
+          res.status(400).json({ error: `Posting time ${t} is outside business hours (${bhStart}–${bhEnd})` });
+          return;
+        }
+      }
+    }
+  }
+
   const [campaign] = await db.insert(campaignsTable).values({
     tenantId: req.tenantId!,
     name: parsed.data.name,
@@ -82,6 +125,11 @@ router.post("/campaigns", requireAuth, async (req, res): Promise<void> => {
     hashtags: parsed.data.hashtags || null,
     repetitionIntervalDays: parsed.data.repetitionIntervalDays || 7,
     alwaysIncludeImages: parsed.data.alwaysIncludeImages || false,
+    businessHoursOnly: parsed.data.businessHoursOnly ?? false,
+    businessHoursStart: bhStart,
+    businessHoursEnd: bhEnd,
+    includeSaturday: parsed.data.includeSaturday ?? true,
+    includeSunday: parsed.data.includeSunday ?? true,
   }).returning();
 
   res.status(201).json(campaign);
@@ -143,6 +191,58 @@ router.patch("/campaigns/:id", requireAuth, async (req, res): Promise<void> => {
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
+  }
+
+  const [existingCampaign] = await db.select().from(campaignsTable)
+    .where(and(eq(campaignsTable.id, params.data.id), eq(campaignsTable.tenantId, req.tenantId!)));
+
+  if (!existingCampaign) {
+    res.status(404).json({ error: "Campaign not found" });
+    return;
+  }
+
+  const isValidTime = (t: string) => {
+    if (!/^\d{2}:\d{2}$/.test(t)) return false;
+    const [h, m] = t.split(":").map(Number);
+    return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+  };
+
+  if (parsed.data.postingTimes) {
+    const times = parsed.data.postingTimes.split(",").map((t: string) => t.trim()).filter(Boolean);
+    for (const t of times) {
+      if (!isValidTime(t)) {
+        res.status(400).json({ error: `Invalid posting time format: ${t}. Must be HH:mm (00:00–23:59)` });
+        return;
+      }
+    }
+  }
+  if (parsed.data.businessHoursStart !== undefined && !isValidTime(parsed.data.businessHoursStart)) {
+    res.status(400).json({ error: "Business hours start must be in valid HH:mm format (00:00–23:59)" });
+    return;
+  }
+  if (parsed.data.businessHoursEnd !== undefined && !isValidTime(parsed.data.businessHoursEnd)) {
+    res.status(400).json({ error: "Business hours end must be in valid HH:mm format (00:00–23:59)" });
+    return;
+  }
+
+  const effectiveBhOnly = parsed.data.businessHoursOnly ?? existingCampaign.businessHoursOnly;
+  if (effectiveBhOnly) {
+    const bhStart = parsed.data.businessHoursStart ?? existingCampaign.businessHoursStart;
+    const bhEnd = parsed.data.businessHoursEnd ?? existingCampaign.businessHoursEnd;
+    if (bhStart >= bhEnd) {
+      res.status(400).json({ error: "Business hours start must be before end" });
+      return;
+    }
+    const effectivePostingTimes = parsed.data.postingTimes !== undefined ? parsed.data.postingTimes : existingCampaign.postingTimes;
+    if (effectivePostingTimes) {
+      const times = effectivePostingTimes.split(",").map((t: string) => t.trim()).filter(Boolean);
+      for (const t of times) {
+        if (t < bhStart || t >= bhEnd) {
+          res.status(400).json({ error: `Posting time ${t} is outside business hours (${bhStart}–${bhEnd})` });
+          return;
+        }
+      }
+    }
   }
 
   const [campaign] = await db.update(campaignsTable)

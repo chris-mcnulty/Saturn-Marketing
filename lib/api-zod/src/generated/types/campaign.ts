@@ -23,6 +23,11 @@ export interface Campaign {
   repetitionIntervalDays: number;
   status: CampaignStatus;
   alwaysIncludeImages: boolean;
+  businessHoursOnly: boolean;
+  businessHoursStart: string;
+  businessHoursEnd: string;
+  includeSaturday: boolean;
+  includeSunday: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

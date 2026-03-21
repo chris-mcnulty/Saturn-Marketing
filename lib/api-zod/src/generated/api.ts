@@ -455,6 +455,11 @@ export const ListCampaignsResponseItem = zod.object({
   repetitionIntervalDays: zod.number(),
   status: zod.enum(["draft", "scheduled", "active", "paused", "completed"]),
   alwaysIncludeImages: zod.boolean(),
+  businessHoursOnly: zod.boolean(),
+  businessHoursStart: zod.string(),
+  businessHoursEnd: zod.string(),
+  includeSaturday: zod.boolean(),
+  includeSunday: zod.boolean(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -474,6 +479,11 @@ export const CreateCampaignBody = zod.object({
   hashtags: zod.string().optional(),
   repetitionIntervalDays: zod.number().min(1).optional(),
   alwaysIncludeImages: zod.boolean().optional(),
+  businessHoursOnly: zod.boolean().optional(),
+  businessHoursStart: zod.string().optional(),
+  businessHoursEnd: zod.string().optional(),
+  includeSaturday: zod.boolean().optional(),
+  includeSunday: zod.boolean().optional(),
 });
 
 /**
@@ -496,6 +506,11 @@ export const GetCampaignResponse = zod.object({
   repetitionIntervalDays: zod.number(),
   status: zod.enum(["draft", "scheduled", "active", "paused", "completed"]),
   alwaysIncludeImages: zod.boolean(),
+  businessHoursOnly: zod.boolean(),
+  businessHoursStart: zod.string(),
+  businessHoursEnd: zod.string(),
+  includeSaturday: zod.boolean(),
+  includeSunday: zod.boolean(),
   assets: zod.array(
     zod.object({
       campaignId: zod.number(),
@@ -557,6 +572,11 @@ export const UpdateCampaignBody = zod.object({
     .enum(["draft", "scheduled", "active", "paused", "completed"])
     .optional(),
   alwaysIncludeImages: zod.boolean().optional(),
+  businessHoursOnly: zod.boolean().optional(),
+  businessHoursStart: zod.string().optional(),
+  businessHoursEnd: zod.string().optional(),
+  includeSaturday: zod.boolean().optional(),
+  includeSunday: zod.boolean().optional(),
 });
 
 export const UpdateCampaignResponse = zod.object({
@@ -572,6 +592,11 @@ export const UpdateCampaignResponse = zod.object({
   repetitionIntervalDays: zod.number(),
   status: zod.enum(["draft", "scheduled", "active", "paused", "completed"]),
   alwaysIncludeImages: zod.boolean(),
+  businessHoursOnly: zod.boolean(),
+  businessHoursStart: zod.string(),
+  businessHoursEnd: zod.string(),
+  includeSaturday: zod.boolean(),
+  includeSunday: zod.boolean(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });

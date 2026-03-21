@@ -231,6 +231,11 @@ export interface Campaign {
   repetitionIntervalDays: number;
   status: CampaignStatus;
   alwaysIncludeImages: boolean;
+  businessHoursOnly: boolean;
+  businessHoursStart: string;
+  businessHoursEnd: string;
+  includeSaturday: boolean;
+  includeSunday: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -281,6 +286,11 @@ export interface CampaignDetail {
   repetitionIntervalDays: number;
   status: CampaignDetailStatus;
   alwaysIncludeImages: boolean;
+  businessHoursOnly: boolean;
+  businessHoursStart: string;
+  businessHoursEnd: string;
+  includeSaturday: boolean;
+  includeSunday: boolean;
   assets: CampaignAssetDetail[];
   socialAccounts: SocialAccount[];
   createdAt: string;
@@ -300,6 +310,11 @@ export interface CreateCampaignBody {
   /** @minimum 1 */
   repetitionIntervalDays?: number;
   alwaysIncludeImages?: boolean;
+  businessHoursOnly?: boolean;
+  businessHoursStart?: string;
+  businessHoursEnd?: string;
+  includeSaturday?: boolean;
+  includeSunday?: boolean;
 }
 
 export type UpdateCampaignBodyStatus =
@@ -330,6 +345,11 @@ export interface UpdateCampaignBody {
   repetitionIntervalDays?: number;
   status?: UpdateCampaignBodyStatus;
   alwaysIncludeImages?: boolean;
+  businessHoursOnly?: boolean;
+  businessHoursStart?: string;
+  businessHoursEnd?: string;
+  includeSaturday?: boolean;
+  includeSunday?: boolean;
 }
 
 export interface AddCampaignAssetBody {

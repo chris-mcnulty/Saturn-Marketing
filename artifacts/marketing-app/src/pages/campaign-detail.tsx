@@ -23,6 +23,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Plus, Download, Wand2, Link as LinkIcon, Trash2, Edit, Pencil, Save, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -65,9 +68,20 @@ export default function CampaignDetail() {
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<number>>(new Set());
   const [isAddingAssets, setIsAddingAssets] = useState(false);
   const [isEditingCampaign, setIsEditingCampaign] = useState(false);
+  const [editTimeSlots, setEditTimeSlots] = useState<string[]>(["09:00"]);
+
+  const getExclusiveMax = (endTime: string | undefined) => {
+    if (!endTime) return undefined;
+    const [h, m] = endTime.split(":").map(Number);
+    const totalMins = h * 60 + m - 1;
+    if (totalMins < 0) return undefined;
+    return `${String(Math.floor(totalMins / 60)).padStart(2, "0")}:${String(totalMins % 60).padStart(2, "0")}`;
+  };
   const [editFields, setEditFields] = useState({
     name: "", description: "", startDate: "", durationDays: 7,
     postsPerDay: 1, postingTimes: "", hashtags: "",
+    businessHoursOnly: false, businessHoursStart: "09:00", businessHoursEnd: "17:00",
+    includeSaturday: true, includeSunday: true,
   });
 
   useEffect(() => {
@@ -93,6 +107,8 @@ export default function CampaignDetail() {
       const d = new Date(campaign.startDate);
       startDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     }
+    const times = (campaign.postingTimes || "09:00").split(",").map((t: string) => t.trim()).filter(Boolean);
+    setEditTimeSlots(times.length > 0 ? times : ["09:00"]);
     setEditFields({
       name: campaign.name,
       description: campaign.description || "",
@@ -101,6 +117,11 @@ export default function CampaignDetail() {
       postsPerDay: campaign.postsPerDay,
       postingTimes: campaign.postingTimes || "",
       hashtags: campaign.hashtags || "",
+      businessHoursOnly: campaign.businessHoursOnly ?? false,
+      businessHoursStart: campaign.businessHoursStart || "09:00",
+      businessHoursEnd: campaign.businessHoursEnd || "17:00",
+      includeSaturday: campaign.includeSaturday ?? true,
+      includeSunday: campaign.includeSunday ?? true,
     });
     setIsEditingCampaign(true);
   };
@@ -112,8 +133,13 @@ export default function CampaignDetail() {
       startDate: editFields.startDate,
       durationDays: editFields.durationDays,
       postsPerDay: editFields.postsPerDay,
-      postingTimes: editFields.postingTimes || undefined,
+      postingTimes: editTimeSlots.join(",") || undefined,
       hashtags: editFields.hashtags || undefined,
+      businessHoursOnly: editFields.businessHoursOnly,
+      businessHoursStart: editFields.businessHoursStart,
+      businessHoursEnd: editFields.businessHoursEnd,
+      includeSaturday: editFields.includeSaturday,
+      includeSunday: editFields.includeSunday,
     }}, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
@@ -316,6 +342,8 @@ export default function CampaignDetail() {
             <div><span className="text-muted-foreground">Duration:</span> <span className="font-semibold">{campaign.durationDays} days</span></div>
             <div><span className="text-muted-foreground">Freq:</span> <span className="font-semibold">{campaign.postsPerDay}/day</span></div>
             {campaign.postingTimes && <div><span className="text-muted-foreground">Times:</span> <span className="font-semibold">{campaign.postingTimes}</span></div>}
+            {campaign.businessHoursOnly && <div><span className="text-muted-foreground">Hours:</span> <span className="font-semibold">{campaign.businessHoursStart}–{campaign.businessHoursEnd}</span></div>}
+            <div><span className="text-muted-foreground">Days:</span> <span className="font-semibold">Mon–Fri{campaign.includeSaturday ? ', Sat' : ''}{campaign.includeSunday ? ', Sun' : ''}</span></div>
             <div><span className="text-muted-foreground">Always-Include Tags:</span> <span className="font-semibold">{campaign.hashtags || 'None'}</span></div>
           </div>
         </div>
@@ -619,10 +647,72 @@ export default function CampaignDetail() {
                 <label className="text-sm font-medium mb-1.5 block">Posts Per Day</label>
                 <Input type="number" min={1} value={editFields.postsPerDay} onChange={e => setEditFields(f => ({...f, postsPerDay: parseInt(e.target.value) || 1}))} className="rounded-xl h-11" />
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Posting Times</label>
-                <Input value={editFields.postingTimes} onChange={e => setEditFields(f => ({...f, postingTimes: e.target.value}))} className="rounded-xl h-11" placeholder="09:00, 15:00" />
+              <div className="md:col-span-2 space-y-2">
+                <Label className="text-sm font-medium">Posting Times</Label>
+                <div className="space-y-2">
+                  {editTimeSlots.map((slot, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        value={slot}
+                        min={editFields.businessHoursOnly ? editFields.businessHoursStart : undefined}
+                        max={editFields.businessHoursOnly ? getExclusiveMax(editFields.businessHoursEnd) : undefined}
+                        onChange={(e) => {
+                          const updated = [...editTimeSlots];
+                          updated[idx] = e.target.value;
+                          setEditTimeSlots(updated);
+                        }}
+                        className="rounded-xl h-11 w-40"
+                      />
+                      {editTimeSlots.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 h-9 w-9" onClick={() => setEditTimeSlots(editTimeSlots.filter((_, i) => i !== idx))}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => setEditTimeSlots([...editTimeSlots, "12:00"])}>
+                    <Plus className="w-3 h-3 mr-1" /> Add Time Slot
+                  </Button>
+                </div>
               </div>
+
+              <div className="md:col-span-2 space-y-4 rounded-xl border border-border/50 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Business Hours Only</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Restrict posting to business hours</p>
+                  </div>
+                  <Switch checked={editFields.businessHoursOnly} onCheckedChange={(v) => setEditFields(f => ({...f, businessHoursOnly: v}))} />
+                </div>
+                {editFields.businessHoursOnly && (
+                  <div className="flex items-center gap-3 pl-1">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">From</Label>
+                      <Input type="time" value={editFields.businessHoursStart} onChange={e => setEditFields(f => ({...f, businessHoursStart: e.target.value}))} className="rounded-xl h-9 w-32" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">To</Label>
+                      <Input type="time" value={editFields.businessHoursEnd} onChange={e => setEditFields(f => ({...f, businessHoursEnd: e.target.value}))} className="rounded-xl h-9 w-32" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="md:col-span-2 space-y-3">
+                <Label className="text-sm font-medium">Weekend Scheduling</Label>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="edit-sat" checked={editFields.includeSaturday} onCheckedChange={(v) => setEditFields(f => ({...f, includeSaturday: !!v}))} />
+                    <Label htmlFor="edit-sat" className="text-sm cursor-pointer">Include Saturday</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="edit-sun" checked={editFields.includeSunday} onCheckedChange={(v) => setEditFields(f => ({...f, includeSunday: !!v}))} />
+                    <Label htmlFor="edit-sun" className="text-sm cursor-pointer">Include Sunday</Label>
+                  </div>
+                </div>
+              </div>
+
               <div className="md:col-span-2">
                 <label className="text-sm font-medium mb-1.5 block">Always-Include Hashtags</label>
                 <Input value={editFields.hashtags} onChange={e => setEditFields(f => ({...f, hashtags: e.target.value}))} className="rounded-xl h-11" placeholder="#Marketing; #AI" />

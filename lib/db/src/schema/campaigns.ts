@@ -16,6 +16,11 @@ export const campaignsTable = pgTable("campaigns", {
   repetitionIntervalDays: integer("repetition_interval_days").notNull().default(7),
   status: text("status").notNull().default("draft"),
   alwaysIncludeImages: boolean("always_include_images").notNull().default(false),
+  businessHoursOnly: boolean("business_hours_only").notNull().default(false),
+  businessHoursStart: text("business_hours_start").notNull().default("09:00"),
+  businessHoursEnd: text("business_hours_end").notNull().default("17:00"),
+  includeSaturday: boolean("include_saturday").notNull().default(true),
+  includeSunday: boolean("include_sunday").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

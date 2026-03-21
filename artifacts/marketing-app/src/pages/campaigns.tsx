@@ -16,9 +16,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Calendar, Clock, Hash, ChevronRight } from "lucide-react";
+import { Loader2, Plus, Calendar, Clock, Hash, ChevronRight, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const createSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -28,6 +31,11 @@ const createSchema = z.object({
   postsPerDay: z.coerce.number().min(1),
   postingTimes: z.string().optional(),
   hashtags: z.string().optional(),
+  businessHoursOnly: z.boolean().optional(),
+  businessHoursStart: z.string().optional(),
+  businessHoursEnd: z.string().optional(),
+  includeSaturday: z.boolean().optional(),
+  includeSunday: z.boolean().optional(),
 });
 
 export default function Campaigns() {
@@ -38,22 +46,39 @@ export default function Campaigns() {
   const { data: campaigns, isLoading } = useListCampaigns();
   const createMutation = useCreateCampaign();
 
+  const [postingTimeSlots, setPostingTimeSlots] = useState<string[]>(["09:00", "15:00"]);
+
+  const getExclusiveMax = (endTime: string | undefined) => {
+    if (!endTime) return undefined;
+    const [h, m] = endTime.split(":").map(Number);
+    const totalMins = h * 60 + m - 1;
+    if (totalMins < 0) return undefined;
+    return `${String(Math.floor(totalMins / 60)).padStart(2, "0")}:${String(totalMins % 60).padStart(2, "0")}`;
+  };
+
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { 
       name: "", description: "",
       startDate: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
       durationDays: 14, postsPerDay: 2, postingTimes: "09:00,15:00",
-      hashtags: "#marketing"
+      hashtags: "#marketing",
+      businessHoursOnly: false,
+      businessHoursStart: "09:00",
+      businessHoursEnd: "17:00",
+      includeSaturday: false,
+      includeSunday: false,
     },
   });
 
   const onSubmit = (data: z.infer<typeof createSchema>) => {
-    createMutation.mutate({ data }, {
+    const submitData = { ...data, postingTimes: postingTimeSlots.join(",") };
+    createMutation.mutate({ data: submitData }, {
       onSuccess: (newCampaign) => {
         queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
         setIsCreateOpen(false);
         form.reset();
+        setPostingTimeSlots(["09:00", "15:00"]);
         toast({ title: "Campaign created" });
         // Redirect to detail page
         window.location.href = `/campaigns/${newCampaign.id}`;
@@ -143,7 +168,7 @@ export default function Campaigns() {
         )}
 
         {/* Create Modal */}
-        <DialogPrimitive.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogPrimitive.Root open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) { setPostingTimeSlots(["09:00", "15:00"]); form.reset(); } }}>
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out" />
             <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:rounded-3xl max-h-[90vh] overflow-y-auto">
@@ -191,14 +216,82 @@ export default function Campaigns() {
                       </FormItem>
                     )} />
 
-                    <FormField control={form.control} name="postingTimes" render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Posting Times (comma separated)</FormLabel>
-                        <FormControl><Input placeholder="09:00, 15:00" className="rounded-xl h-11" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    
+                    <div className="md:col-span-2 space-y-2">
+                      <Label className="text-sm font-medium">Posting Times</Label>
+                      <div className="space-y-2">
+                        {postingTimeSlots.map((slot, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <Input
+                              type="time"
+                              value={slot}
+                              min={form.watch("businessHoursOnly") ? form.watch("businessHoursStart") : undefined}
+                              max={form.watch("businessHoursOnly") ? getExclusiveMax(form.watch("businessHoursEnd")) : undefined}
+                              onChange={(e) => {
+                                const updated = [...postingTimeSlots];
+                                updated[idx] = e.target.value;
+                                setPostingTimeSlots(updated);
+                              }}
+                              className="rounded-xl h-11 w-40"
+                            />
+                            {postingTimeSlots.length > 1 && (
+                              <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 h-9 w-9" onClick={() => setPostingTimeSlots(postingTimeSlots.filter((_, i) => i !== idx))}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={() => setPostingTimeSlots([...postingTimeSlots, "12:00"])}>
+                          <Plus className="w-3 h-3 mr-1" /> Add Time Slot
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-4 rounded-xl border border-border/50 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">Business Hours Only</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">Restrict posting to business hours</p>
+                        </div>
+                        <FormField control={form.control} name="businessHoursOnly" render={({ field }) => (
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        )} />
+                      </div>
+                      {form.watch("businessHoursOnly") && (
+                        <div className="flex items-center gap-3 pl-1">
+                          <FormField control={form.control} name="businessHoursStart" render={({ field }) => (
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground">From</Label>
+                              <Input type="time" className="rounded-xl h-9 w-32" {...field} />
+                            </div>
+                          )} />
+                          <FormField control={form.control} name="businessHoursEnd" render={({ field }) => (
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground">To</Label>
+                              <Input type="time" className="rounded-xl h-9 w-32" {...field} />
+                            </div>
+                          )} />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2 space-y-3">
+                      <Label className="text-sm font-medium">Weekend Scheduling</Label>
+                      <div className="flex items-center gap-6">
+                        <FormField control={form.control} name="includeSaturday" render={({ field }) => (
+                          <div className="flex items-center gap-2">
+                            <Checkbox id="create-sat" checked={field.value} onCheckedChange={(v) => field.onChange(!!v)} />
+                            <Label htmlFor="create-sat" className="text-sm cursor-pointer">Include Saturday</Label>
+                          </div>
+                        )} />
+                        <FormField control={form.control} name="includeSunday" render={({ field }) => (
+                          <div className="flex items-center gap-2">
+                            <Checkbox id="create-sun" checked={field.value} onCheckedChange={(v) => field.onChange(!!v)} />
+                            <Label htmlFor="create-sun" className="text-sm cursor-pointer">Include Sunday</Label>
+                          </div>
+                        )} />
+                      </div>
+                    </div>
+
                     <FormField control={form.control} name="hashtags" render={({ field }) => (
                       <FormItem className="md:col-span-2">
                         <FormLabel>Always-Include Hashtags</FormLabel>
