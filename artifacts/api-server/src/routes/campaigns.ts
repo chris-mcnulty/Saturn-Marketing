@@ -62,7 +62,8 @@ router.get("/campaigns", requireAuth, async (req, res): Promise<void> => {
 router.post("/campaigns", requireAuth, async (req, res): Promise<void> => {
   const body = { ...req.body };
   if (typeof body.startDate === "string") {
-    body.startDate = new Date(body.startDate);
+    const parts = body.startDate.split("-");
+    body.startDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   }
   const parsed = CreateCampaignBody.safeParse(body);
   if (!parsed.success) {
@@ -135,7 +136,8 @@ router.patch("/campaigns/:id", requireAuth, async (req, res): Promise<void> => {
 
   const updateBody = { ...req.body };
   if (typeof updateBody.startDate === "string") {
-    updateBody.startDate = new Date(updateBody.startDate);
+    const parts = updateBody.startDate.split("-");
+    updateBody.startDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   }
   const parsed = UpdateCampaignBody.safeParse(updateBody);
   if (!parsed.success) {

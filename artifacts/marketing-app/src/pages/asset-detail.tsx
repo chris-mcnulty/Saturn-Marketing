@@ -7,6 +7,7 @@ import {
   useListCategories,
   useCreateCampaign,
   useAddCampaignAsset,
+  useGenerateCampaignPosts,
   getGetAssetQueryKey,
   getListAssetsQueryKey,
 } from "@workspace/api-client-react";
@@ -99,38 +100,31 @@ export default function AssetDetail() {
   const extractMutation = useExtractAssetContent();
   const createCampaignMut = useCreateCampaign();
   const addCampaignAssetMut = useAddCampaignAsset();
+  const generatePostsMut = useGenerateCampaignPosts();
 
   const handleInstantCampaign = async () => {
     if (!asset) return;
     setIsCreatingCampaign(true);
     try {
       const campaignName = `${asset.title || "Untitled"} Campaign`;
-      const startDate = new Date().toISOString().split("T")[0];
-      const newCampaign = await new Promise<any>((resolve, reject) => {
-        createCampaignMut.mutate({
-          data: {
-            name: campaignName,
-            startDate,
-            durationDays: instantDuration,
-            postsPerDay: 2,
-            postingTimes: "09:00,15:00",
-          },
-        }, {
-          onSuccess: (data) => resolve(data),
-          onError: (err) => reject(err),
-        });
+      const now = new Date();
+      const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const newCampaign = await createCampaignMut.mutateAsync({
+        data: {
+          name: campaignName,
+          startDate,
+          durationDays: instantDuration,
+          postsPerDay: 2,
+          postingTimes: "09:00,15:00",
+        },
       });
-      await new Promise<void>((resolve, reject) => {
-        addCampaignAssetMut.mutate({
-          id: newCampaign.id,
-          data: { assetId: id },
-        }, {
-          onSuccess: () => resolve(),
-          onError: (err) => reject(err),
-        });
+      await addCampaignAssetMut.mutateAsync({
+        id: newCampaign.id,
+        data: { assetId: id },
       });
+      generatePostsMut.mutate({ id: newCampaign.id });
       setIsInstantCampaignOpen(false);
-      toast({ title: "Campaign created! Redirecting..." });
+      toast({ title: "Campaign created & generation started! Redirecting..." });
       setLocation(`/campaigns/${newCampaign.id}`);
     } catch {
       toast({ title: "Failed to create campaign", variant: "destructive" });

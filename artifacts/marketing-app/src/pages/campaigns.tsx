@@ -41,7 +41,8 @@ export default function Campaigns() {
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
     defaultValues: { 
-      name: "", description: "", startDate: new Date().toISOString().split('T')[0],
+      name: "", description: "",
+      startDate: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`,
       durationDays: 14, postsPerDay: 2, postingTimes: "09:00,15:00",
       hashtags: "#marketing"
     },
@@ -117,7 +118,7 @@ export default function Campaigns() {
                     <div className="space-y-2 mt-auto pt-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
-                        <span>Starts {format(new Date(campaign.startDate), "MMM d, yyyy")} ({campaign.durationDays} days)</span>
+                        <span>Starts {typeof campaign.startDate === "string" ? campaign.startDate.split("T")[0] : format(new Date(campaign.startDate), "MMM d, yyyy")} ({campaign.durationDays} days)</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="w-4 h-4" />

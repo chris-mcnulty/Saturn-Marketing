@@ -86,9 +86,13 @@ export default function CampaignDetail() {
 
   const openEditCampaign = () => {
     if (!campaign) return;
-    const startDateStr = typeof campaign.startDate === "string"
-      ? campaign.startDate.split("T")[0]
-      : new Date(campaign.startDate).toISOString().split("T")[0];
+    let startDateStr: string;
+    if (typeof campaign.startDate === "string") {
+      startDateStr = campaign.startDate.split("T")[0];
+    } else {
+      const d = new Date(campaign.startDate);
+      startDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
     setEditFields({
       name: campaign.name,
       description: campaign.description || "",
