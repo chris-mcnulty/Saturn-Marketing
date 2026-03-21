@@ -7,7 +7,6 @@ import {
   useListCategories,
   useCreateCampaign,
   useAddCampaignAsset,
-  useGenerateCampaignPosts,
   getGetAssetQueryKey,
   getListAssetsQueryKey,
 } from "@workspace/api-client-react";
@@ -100,7 +99,6 @@ export default function AssetDetail() {
   const extractMutation = useExtractAssetContent();
   const createCampaignMut = useCreateCampaign();
   const addCampaignAssetMut = useAddCampaignAsset();
-  const generatePostsMut = useGenerateCampaignPosts();
 
   const handleInstantCampaign = async () => {
     if (!asset) return;
@@ -122,9 +120,8 @@ export default function AssetDetail() {
         id: newCampaign.id,
         data: { assetId: id },
       });
-      generatePostsMut.mutate({ id: newCampaign.id });
       setIsInstantCampaignOpen(false);
-      toast({ title: "Campaign created & generation started! Redirecting..." });
+      toast({ title: "Campaign created! Add social accounts then generate posts." });
       setLocation(`/campaigns/${newCampaign.id}`);
     } catch {
       toast({ title: "Failed to create campaign", variant: "destructive" });
