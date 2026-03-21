@@ -680,6 +680,27 @@ export const DeleteSocialAccountParams = zod.object({
 });
 
 /**
+ * @summary List previously generated posts for a campaign
+ */
+export const ListGeneratedPostsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListGeneratedPostsResponseItem = zod.object({
+  postContent: zod.string(),
+  imageUrls: zod.string().nullish(),
+  dateTime: zod.string(),
+  accountId: zod.string(),
+  firstComment: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  assetId: zod.number(),
+  assetTitle: zod.string().nullish(),
+});
+export const ListGeneratedPostsResponse = zod.array(
+  ListGeneratedPostsResponseItem,
+);
+
+/**
  * @summary Generate posts for a campaign
  */
 export const GenerateCampaignPostsParams = zod.object({

@@ -705,6 +705,27 @@ paths:
         "204":
           description: Social account deleted
 
+  /campaigns/{id}/generated-posts:
+    get:
+      operationId: listGeneratedPosts
+      tags: [csv]
+      summary: List previously generated posts for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Saved generated posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeneratedPost"
+
   /campaigns/{id}/generate-posts:
     post:
       operationId: generateCampaignPosts

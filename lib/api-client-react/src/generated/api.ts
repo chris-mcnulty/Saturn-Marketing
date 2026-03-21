@@ -3038,6 +3038,93 @@ export const useDeleteSocialAccount = <
 };
 
 /**
+ * @summary List previously generated posts for a campaign
+ */
+export const getListGeneratedPostsUrl = (id: number) => {
+  return `/api/campaigns/${id}/generated-posts`;
+};
+
+export const listGeneratedPosts = async (
+  id: number,
+  options?: RequestInit,
+): Promise<GeneratedPost[]> => {
+  return customFetch<GeneratedPost[]>(getListGeneratedPostsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListGeneratedPostsQueryKey = (id: number) => {
+  return [`/api/campaigns/${id}/generated-posts`] as const;
+};
+
+export const getListGeneratedPostsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGeneratedPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGeneratedPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListGeneratedPostsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGeneratedPosts>>
+  > = ({ signal }) => listGeneratedPosts(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGeneratedPosts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGeneratedPostsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGeneratedPosts>>
+>;
+export type ListGeneratedPostsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List previously generated posts for a campaign
+ */
+
+export function useListGeneratedPosts<
+  TData = Awaited<ReturnType<typeof listGeneratedPosts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGeneratedPosts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGeneratedPostsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Generate posts for a campaign
  */
 export const getGenerateCampaignPostsUrl = (id: number) => {

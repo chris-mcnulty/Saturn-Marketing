@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout";
 import { 
   useGetCampaign, 
@@ -12,6 +12,7 @@ import {
   useAddCampaignSocialAccount,
   useRemoveCampaignSocialAccount,
   useGenerateCampaignPosts,
+  useListGeneratedPosts,
   getGetCampaignQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,6 +36,7 @@ export default function CampaignDetail() {
   const { data: allAssets } = useListAssets();
   const { data: categories } = useListCategories();
   const { data: allAccounts } = useListSocialAccounts();
+  const { data: savedPosts } = useListGeneratedPosts(id);
 
   // Mutations
   const updateCampaignMut = useUpdateCampaign();
@@ -57,10 +59,18 @@ export default function CampaignDetail() {
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
   const [assetCategoryFilter, setAssetCategoryFilter] = useState<string>("");
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
-  const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
+  const [generatedPosts, setGeneratedPosts] = useState<any[] | null>(null);
   const [exportFormat, setExportFormat] = useState<string>("socialpilot");
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<number>>(new Set());
   const [isAddingAssets, setIsAddingAssets] = useState(false);
+
+  useEffect(() => {
+    if (savedPosts && savedPosts.length > 0 && generatedPosts === null) {
+      setGeneratedPosts(savedPosts);
+    }
+  }, [savedPosts]);
+
+  const posts = generatedPosts || [];
 
   const handleStatusChange = (newStatus: "draft" | "scheduled" | "active" | "paused" | "completed") => {
     updateCampaignMut.mutate({ id, data: { status: newStatus } }, {
@@ -303,7 +313,7 @@ export default function CampaignDetail() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Post Previews</h3>
-                {generatedPosts.length > 0 && (
+                {posts.length > 0 && (
                   <div className="flex items-center gap-2">
                     <select
                       value={exportFormat}
@@ -331,14 +341,14 @@ export default function CampaignDetail() {
                 </div>
               )}
 
-              {!generatePostsMut.isPending && generatedPosts.length === 0 ? (
+              {!generatePostsMut.isPending && posts.length === 0 ? (
                 <div className="text-center py-16 border-2 border-dashed rounded-2xl bg-secondary/10">
                   <p className="text-muted-foreground mb-4">Click 'Generate Posts' to preview the campaign schedule.</p>
                   <Button onClick={handleGenerate} variant="secondary">Generate Now</Button>
                 </div>
-              ) : generatedPosts.length > 0 ? (
+              ) : posts.length > 0 ? (
                 <div className="space-y-4">
-                  {generatedPosts.map((post, i) => (
+                  {posts.map((post, i) => (
                     <Card key={i} className="p-4 rounded-2xl border-border/50">
                       <div className="flex flex-col md:flex-row gap-4">
                         {post.imageUrls && (

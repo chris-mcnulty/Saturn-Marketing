@@ -13,3 +13,4 @@ export * from "./tenantInvites";
 export * from "./domainBlocklist";
 export * from "./consultantAccess";
 export * from "./groundingDocuments";
+export * from "./generatedPosts";

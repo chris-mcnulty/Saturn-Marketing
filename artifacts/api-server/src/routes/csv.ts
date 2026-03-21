@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, campaignsTable, campaignAssetsTable, assetsTable, campaignSocialAccountsTable, socialAccountsTable } from "@workspace/db";
+import { db, campaignsTable, campaignAssetsTable, assetsTable, campaignSocialAccountsTable, socialAccountsTable, generatedPostsTable } from "@workspace/db";
 import {
   GenerateCampaignPostsParams,
   ExportCampaignCsvParams,
@@ -408,6 +408,34 @@ function parseSocialPilotDate(dateStr: string): Date | null {
   );
 }
 
+router.get("/campaigns/:id/generated-posts", requireAuth, async (req, res): Promise<void> => {
+  const params = GenerateCampaignPostsParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const rows = await db.select().from(generatedPostsTable)
+    .where(and(
+      eq(generatedPostsTable.campaignId, params.data.id),
+      eq(generatedPostsTable.tenantId, req.tenantId!),
+    ))
+    .orderBy(generatedPostsTable.id);
+
+  const posts = rows.map(r => ({
+    postContent: r.postContent,
+    imageUrls: r.imageUrls,
+    dateTime: r.dateTime,
+    accountId: r.accountId,
+    firstComment: r.firstComment,
+    tags: r.tags,
+    assetId: r.assetId,
+    assetTitle: r.assetTitle,
+  }));
+
+  res.json(posts);
+});
+
 router.post("/campaigns/:id/generate-posts", requireAuth, async (req, res): Promise<void> => {
   const params = GenerateCampaignPostsParams.safeParse(req.params);
   if (!params.success) {
@@ -417,6 +445,33 @@ router.post("/campaigns/:id/generate-posts", requireAuth, async (req, res): Prom
 
   try {
     const posts = await generatePosts(params.data.id, req.tenantId!);
+
+    await db.delete(generatedPostsTable).where(and(
+      eq(generatedPostsTable.campaignId, params.data.id),
+      eq(generatedPostsTable.tenantId, req.tenantId!),
+    ));
+
+    if (posts.length > 0) {
+      const rows = posts.map(p => ({
+        campaignId: params.data.id,
+        tenantId: req.tenantId!,
+        postContent: p.postContent,
+        imageUrls: p.imageUrls,
+        dateTime: p.dateTime,
+        accountId: p.accountId,
+        firstComment: p.firstComment,
+        tags: p.tags,
+        assetId: p.assetId,
+        assetTitle: p.assetTitle,
+      }));
+
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        await db.insert(generatedPostsTable).values(rows.slice(i, i + BATCH_SIZE));
+      }
+    }
+
+    logger.info({ campaignId: params.data.id, postCount: posts.length }, "Generated posts saved");
     res.json(posts);
   } catch (e: any) {
     res.status(400).json({ error: e.message });
@@ -436,7 +491,29 @@ router.post("/campaigns/:id/export-csv", requireAuth, async (req, res): Promise<
     : "socialpilot";
 
   try {
-    const posts = await generatePosts(params.data.id, req.tenantId!);
+    const savedRows = await db.select().from(generatedPostsTable)
+      .where(and(
+        eq(generatedPostsTable.campaignId, params.data.id),
+        eq(generatedPostsTable.tenantId, req.tenantId!),
+      ))
+      .orderBy(generatedPostsTable.id);
+
+    let posts: PostSlot[];
+    if (savedRows.length > 0) {
+      posts = savedRows.map(r => ({
+        postContent: r.postContent,
+        imageUrls: r.imageUrls,
+        dateTime: r.dateTime,
+        accountId: r.accountId,
+        firstComment: r.firstComment,
+        tags: r.tags,
+        assetId: r.assetId,
+        assetTitle: r.assetTitle,
+      }));
+    } else {
+      posts = await generatePosts(params.data.id, req.tenantId!);
+    }
+
     const csvContent = formatPostsToCsv(posts, format);
 
     res.setHeader("Content-Type", "text/csv");
