@@ -14,14 +14,16 @@ function sanitizeText(text: string): string {
 
 function extractVisibleText($: cheerio.CheerioAPI): string {
   $("script, style, noscript, iframe, svg, head").remove();
+  $("nav, header, footer, [role='navigation'], [role='banner'], [role='contentinfo']").remove();
+  $(".nav, .navbar, .header, .footer, .sidebar, .menu, .breadcrumb, .cookie-banner").remove();
 
-  const selectors = ["article", "main", "[role='main']"];
+  const selectors = ["article", "main", "[role='main']", ".post-content", ".entry-content", ".page-content"];
   for (const selector of selectors) {
     const el = $(selector);
     if (el.length) {
       const text = el.text().replace(/[^\S\r\n]+/g, " ").trim();
       if (text.length > 50) {
-        return text.slice(0, 2000);
+        return text.slice(0, 3000);
       }
     }
   }
@@ -29,17 +31,17 @@ function extractVisibleText($: cheerio.CheerioAPI): string {
   const paragraphs: string[] = [];
   $("p").each((_, el) => {
     const text = $(el).text().trim();
-    if (text.length > 20) {
+    if (text.length > 30) {
       paragraphs.push(text);
     }
   });
 
   if (paragraphs.length > 0) {
-    return paragraphs.join(" ").slice(0, 2000);
+    return paragraphs.join("\n").slice(0, 3000);
   }
 
   const bodyText = $("body").text().replace(/[^\S\r\n]+/g, " ").trim();
-  return bodyText.slice(0, 2000);
+  return bodyText.slice(0, 3000);
 }
 
 export async function extractContent(assetId: number): Promise<void> {
@@ -92,17 +94,23 @@ export async function extractContent(assetId: number): Promise<void> {
     if (textContent) {
       try {
         const groundingContext = await getGroundingContext(asset.tenantId);
-        const basePrompt = hasMetaDescription
-          ? "You are a social media marketing expert. Generate a concise, engaging social media post caption (1-2 sentences) based on the following web page content. Make it compelling and shareable. Do not include hashtags."
-          : "You are a social media marketing expert. Distill the following web page content into a concise, engaging social media post caption (1-2 sentences). Make it compelling and shareable. Do not include hashtags.";
+        const basePrompt = `You are a social media marketing expert writing post captions that will be published directly to social media platforms.
+
+IMPORTANT RULES:
+- Write 1-2 concise, engaging sentences that read as a standalone social media post.
+- The caption must make sense on its own without any additional context.
+- Do NOT include navigation text, page section headers, download links, file sizes, or website UI elements.
+- Do NOT include hashtags — those are added separately.
+- Do NOT start with the company or brand name unless it's essential to the message.
+- Focus on the VALUE or KEY TAKEAWAY of the content — what would make someone want to click or engage.
+- Write in an active, conversational tone appropriate for LinkedIn, Twitter/X, or Facebook.
+- Output ONLY the caption text — no labels, no quotes, no preamble.`;
         const systemPromptParts = [basePrompt];
         if (groundingContext) {
           systemPromptParts.push(groundingContext);
         }
 
-        const userContent = hasMetaDescription
-          ? `Page title: ${title || "Unknown"}\nPage description: ${textContent}\nURL: ${asset.url}`
-          : `Page title: ${title || "Unknown"}\nPage content: ${textContent}\nURL: ${asset.url}`;
+        const userContent = `Page title: ${title || "Unknown"}\nURL: ${asset.url}\n\nPage content (ignore navigation, headers, footers, and download links — focus on the main content):\n${textContent}`;
 
         const message = await anthropic.messages.create({
           model: "claude-sonnet-4-6",
