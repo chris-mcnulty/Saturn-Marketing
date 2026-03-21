@@ -59,6 +59,8 @@ export default function CampaignDetail() {
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
   const [exportFormat, setExportFormat] = useState<string>("socialpilot");
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<number>>(new Set());
+  const [isAddingAssets, setIsAddingAssets] = useState(false);
 
   const handleStatusChange = (newStatus: "draft" | "scheduled" | "active" | "paused" | "completed") => {
     updateCampaignMut.mutate({ id, data: { status: newStatus } }, {
@@ -69,16 +71,36 @@ export default function CampaignDetail() {
   const closeAddAssetDialog = () => {
     setIsAddAssetOpen(false);
     setAssetCategoryFilter("");
+    setSelectedAssetIds(new Set());
   };
 
-  const handleAddAsset = (assetId: number) => {
-    addAssetMut.mutate({ id, data: { assetId } }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
-        closeAddAssetDialog();
-        toast({ title: "Asset added" });
-      }
+  const toggleAssetSelection = (assetId: number) => {
+    setSelectedAssetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(assetId)) next.delete(assetId);
+      else next.add(assetId);
+      return next;
     });
+  };
+
+  const handleAddSelectedAssets = async () => {
+    if (selectedAssetIds.size === 0) return;
+    setIsAddingAssets(true);
+    let added = 0;
+    for (const assetId of selectedAssetIds) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          addAssetMut.mutate({ id, data: { assetId } }, {
+            onSuccess: () => { added++; resolve(); },
+            onError: (err) => reject(err),
+          });
+        });
+      } catch { /* skip failures */ }
+    }
+    queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
+    closeAddAssetDialog();
+    setIsAddingAssets(false);
+    toast({ title: `${added} asset${added !== 1 ? "s" : ""} added` });
   };
 
   const handleAddAccount = (socialAccountId: number) => {
@@ -352,21 +374,65 @@ export default function CampaignDetail() {
                   </select>
                 </div>
               )}
-              <div className="max-h-96 overflow-y-auto space-y-2">
-                {allAssets
-                  ?.filter(a => !campaign.assets.find(ca => ca.assetId === a.id))
-                  .filter(a => !assetCategoryFilter || a.categoryId === Number(assetCategoryFilter))
-                  .map(asset => (
-                  <div key={asset.id} className="flex items-center justify-between p-3 border rounded-xl hover:bg-secondary/50">
-                    <div className="truncate pr-4">
-                      <p className="font-medium text-sm truncate">{asset.title || asset.url}</p>
-                    </div>
-                    <Button size="sm" onClick={() => handleAddAsset(asset.id)}>Add</Button>
-                  </div>
-                ))}
+              <div className="max-h-96 overflow-y-auto space-y-1">
+                {(() => {
+                  const available = allAssets
+                    ?.filter(a => !campaign.assets.find(ca => ca.assetId === a.id))
+                    .filter(a => !assetCategoryFilter || a.categoryId === Number(assetCategoryFilter)) || [];
+                  if (available.length > 0) {
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-primary hover:underline mb-2 px-1"
+                          onClick={() => {
+                            if (selectedAssetIds.size === available.length) {
+                              setSelectedAssetIds(new Set());
+                            } else {
+                              setSelectedAssetIds(new Set(available.map(a => a.id)));
+                            }
+                          }}
+                        >
+                          {selectedAssetIds.size === available.length ? "Deselect all" : "Select all"}
+                        </button>
+                        {available.map(asset => (
+                          <label
+                            key={asset.id}
+                            className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${
+                              selectedAssetIds.has(asset.id) ? "bg-primary/10 border-primary/30" : "hover:bg-secondary/50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedAssetIds.has(asset.id)}
+                              onChange={() => toggleAssetSelection(asset.id)}
+                              className="w-4 h-4 rounded accent-primary"
+                            />
+                            <div className="truncate min-w-0">
+                              <p className="font-medium text-sm truncate">{asset.title || asset.url}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </>
+                    );
+                  }
+                  return <p className="text-center py-8 text-muted-foreground text-sm">No assets available to add.</p>;
+                })()}
               </div>
-              <div className="mt-4 flex justify-end">
-                <Button variant="outline" onClick={closeAddAssetDialog}>Close</Button>
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {selectedAssetIds.size > 0 ? `${selectedAssetIds.size} selected` : ""}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={closeAddAssetDialog}>Cancel</Button>
+                  <Button
+                    onClick={handleAddSelectedAssets}
+                    disabled={selectedAssetIds.size === 0 || isAddingAssets}
+                  >
+                    {isAddingAssets ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Add {selectedAssetIds.size > 0 ? selectedAssetIds.size : ""} Asset{selectedAssetIds.size !== 1 ? "s" : ""}
+                  </Button>
+                </div>
               </div>
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
