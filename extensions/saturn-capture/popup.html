@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saturn Capture</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="logo-row">
+      <svg class="logo-icon" viewBox="0 0 32 32" width="24" height="24">
+        <circle cx="16" cy="16" r="10" fill="#810FFB"/>
+        <ellipse cx="16" cy="16" rx="16" ry="5" fill="none" stroke="#E60CB3" stroke-width="2" transform="rotate(-20 16 16)"/>
+      </svg>
+      <span class="logo-text">Saturn</span>
+      <span class="logo-sub">Capture</span>
+    </div>
+    <p class="tagline">by Synozur</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="content">Content Assets <span class="badge" id="content-count">0</span></button>
+    <button class="tab" data-tab="images">Image Assets <span class="badge" id="image-count">0</span></button>
+  </div>
+
+  <div class="tab-content active" id="tab-content">
+    <button class="btn btn-primary btn-full" id="capture-content">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 2.5a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" fill="currentColor"/></svg>
+      Capture This Page
+    </button>
+    <div class="list" id="content-list"></div>
+    <div class="empty-state" id="content-empty">
+      <p>No content assets captured yet.</p>
+      <p class="hint">Click "Capture This Page" to grab the current page's title, URL, and description.</p>
+    </div>
+    <div class="actions" id="content-actions" style="display:none">
+      <button class="btn btn-export" id="export-content">Export CSV</button>
+      <button class="btn btn-clear" id="clear-content">Clear All</button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-images">
+    <div class="hint-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a1 1 0 110 2 1 1 0 010-2zM6.5 6.5h2v5h-2v-5z"/></svg>
+      Right-click any image on a webpage and select "Capture Image for Saturn" to add it here.
+    </div>
+    <div class="list" id="image-list"></div>
+    <div class="empty-state" id="image-empty">
+      <p>No image assets captured yet.</p>
+      <p class="hint">Right-click an image on any page to capture it.</p>
+    </div>
+    <div class="actions" id="image-actions" style="display:none">
+      <button class="btn btn-export" id="export-images">Export CSV</button>
+      <button class="btn btn-clear" id="clear-images">Clear All</button>
+    </div>
+  </div>
+
+  <div class="edit-overlay" id="edit-overlay" style="display:none">
+    <div class="edit-panel">
+      <h3 id="edit-title">Edit Item</h3>
+      <div class="edit-fields" id="edit-fields"></div>
+      <div class="edit-actions">
+        <button class="btn btn-secondary" id="edit-cancel">Cancel</button>
+        <button class="btn btn-primary" id="edit-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

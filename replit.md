@@ -50,6 +50,8 @@ artifacts-monorepo/
 ├── artifacts/
 │   ├── api-server/         # Express API server (port 8080)
 │   └── marketing-app/      # React + Vite frontend
+├── extensions/
+│   └── saturn-capture/     # Chromium browser extension for asset capture
 ├── lib/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -130,6 +132,18 @@ Generated Zod schemas from the OpenAPI spec. Used by api-server for request vali
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
 Generated React Query hooks and fetch client from the OpenAPI spec. Custom fetch includes `credentials: "include"` for session cookies.
+
+### `extensions/saturn-capture`
+
+Chromium/Edge browser extension (Manifest V3) for capturing web content and images while browsing.
+
+- **Content Asset Capture**: Click popup button to grab current page's title, URL, and meta description
+- **Image Asset Capture**: Right-click any image → "Capture Image for Saturn" to grab image URL, page title, alt text
+- **Separate storage**: Content assets and image assets stored in separate lists via chrome.storage.local
+- **Edit/Delete**: Inline editing of all fields, per-item deletion
+- **CSV Export**: Content assets → `url,title,description`; Image assets → `image_url,title,description,tags` — matches Saturn's import format
+- **Branding**: Saturn/Synozur dark theme (#810FFB primary, #E60CB3 secondary)
+- **Installation**: Side-load as unpacked extension in Chrome/Edge Developer Mode
 
 ### `scripts` (`@workspace/scripts`)
 
