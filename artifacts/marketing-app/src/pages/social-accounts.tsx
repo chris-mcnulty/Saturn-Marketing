@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout";
 import { 
   useListSocialAccounts, 
   useCreateSocialAccount,
+  useUpdateSocialAccount,
   useDeleteSocialAccount,
   getListSocialAccountsQueryKey
 } from "@workspace/api-client-react";
@@ -17,9 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Share2, Trash2 } from "lucide-react";
+import { Loader2, Plus, Share2, Trash2, Pencil } from "lucide-react";
 
-const createSchema = z.object({
+const accountSchema = z.object({
   platform: z.string().min(1, "Platform is required"),
   accountName: z.string().min(1, "Name is required"),
   socialPilotAccountId: z.string().min(1, "ID is required"),
@@ -27,25 +28,55 @@ const createSchema = z.object({
 
 export default function SocialAccounts() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: accounts, isLoading } = useListSocialAccounts();
   const createMutation = useCreateSocialAccount();
+  const updateMutation = useUpdateSocialAccount();
   const deleteMutation = useDeleteSocialAccount();
 
-  const form = useForm<z.infer<typeof createSchema>>({
-    resolver: zodResolver(createSchema),
+  const form = useForm<z.infer<typeof accountSchema>>({
+    resolver: zodResolver(accountSchema),
     defaultValues: { platform: "twitter", accountName: "", socialPilotAccountId: "" },
   });
 
-  const onSubmit = (data: z.infer<typeof createSchema>) => {
+  const editForm = useForm<z.infer<typeof accountSchema>>({
+    resolver: zodResolver(accountSchema),
+    defaultValues: { platform: "", accountName: "", socialPilotAccountId: "" },
+  });
+
+  const onSubmit = (data: z.infer<typeof accountSchema>) => {
     createMutation.mutate({ data }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListSocialAccountsQueryKey() });
         setIsCreateOpen(false);
         form.reset();
         toast({ title: "Account linked" });
+      }
+    });
+  };
+
+  const openEdit = (acc: any) => {
+    setEditingAccount(acc);
+    editForm.reset({
+      platform: acc.platform,
+      accountName: acc.accountName,
+      socialPilotAccountId: acc.socialPilotAccountId,
+    });
+  };
+
+  const onEditSubmit = (data: z.infer<typeof accountSchema>) => {
+    if (!editingAccount) return;
+    updateMutation.mutate({ id: editingAccount.id, data }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListSocialAccountsQueryKey() });
+        setEditingAccount(null);
+        toast({ title: "Account updated" });
+      },
+      onError: (err: any) => {
+        toast({ title: "Update failed", description: err.data?.error || err.message, variant: "destructive" });
       }
     });
   };
@@ -85,15 +116,20 @@ export default function SocialAccounts() {
                     <p className="text-sm text-muted-foreground capitalize">{acc.platform} • ID: {acc.socialPilotAccountId}</p>
                   </div>
                 </div>
-                <Button variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => {
-                  if(confirm('Delete account?')) {
-                    deleteMutation.mutate({ id: acc.id }, {
-                      onSuccess: () => queryClient.invalidateQueries({ queryKey: getListSocialAccountsQueryKey() })
-                    })
-                  }
-                }}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => openEdit(acc)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => {
+                    if(confirm('Delete account?')) {
+                      deleteMutation.mutate({ id: acc.id }, {
+                        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListSocialAccountsQueryKey() })
+                      })
+                    }
+                  }}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>
@@ -106,7 +142,7 @@ export default function SocialAccounts() {
             <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-background p-6 shadow-2xl sm:rounded-2xl border">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <h2 className="text-xl font-display font-bold mb-4">Add SocialPilot Account</h2>
+                  <h2 className="text-xl font-display font-bold mb-4">Add Social Account</h2>
                   <FormField control={form.control} name="platform" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Platform</FormLabel>
@@ -122,13 +158,13 @@ export default function SocialAccounts() {
                   )} />
                   <FormField control={form.control} name="accountName" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Account Name (Internal)</FormLabel>
+                      <FormLabel>Account Name</FormLabel>
                       <FormControl><Input className="rounded-xl h-11" placeholder="Corporate Twitter" {...field} /></FormControl>
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="socialPilotAccountId" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>SocialPilot Account ID</FormLabel>
+                      <FormLabel>Account ID</FormLabel>
                       <FormControl><Input className="rounded-xl h-11" placeholder="12345678" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -137,6 +173,52 @@ export default function SocialAccounts() {
                     <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
                     <Button type="submit" disabled={createMutation.isPending}>
                       {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
+
+        {/* Edit Dialog */}
+        <DialogPrimitive.Root open={!!editingAccount} onOpenChange={(open) => { if (!open) setEditingAccount(null); }}>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
+            <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] bg-background p-6 shadow-2xl sm:rounded-2xl border">
+              <Form {...editForm}>
+                <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                  <h2 className="text-xl font-display font-bold mb-4">Edit Social Account</h2>
+                  <FormField control={editForm.control} name="platform" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Platform</FormLabel>
+                      <FormControl>
+                        <select className="w-full h-11 px-3 border rounded-xl bg-background" {...field}>
+                          <option value="twitter">Twitter</option>
+                          <option value="linkedin">LinkedIn</option>
+                          <option value="facebook">Facebook</option>
+                          <option value="instagram">Instagram</option>
+                        </select>
+                      </FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField control={editForm.control} name="accountName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Name</FormLabel>
+                      <FormControl><Input className="rounded-xl h-11" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                  <FormField control={editForm.control} name="socialPilotAccountId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account ID</FormLabel>
+                      <FormControl><Input className="rounded-xl h-11" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="flex justify-end gap-2 mt-6">
+                    <Button type="button" variant="outline" onClick={() => setEditingAccount(null)}>Cancel</Button>
+                    <Button type="submit" disabled={updateMutation.isPending}>
+                      {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Update
                     </Button>
                   </div>
                 </form>
