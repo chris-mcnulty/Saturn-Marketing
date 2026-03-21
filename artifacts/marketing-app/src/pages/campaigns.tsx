@@ -28,7 +28,6 @@ const createSchema = z.object({
   postsPerDay: z.coerce.number().min(1),
   postingTimes: z.string().optional(),
   hashtags: z.string().optional(),
-  repetitionIntervalDays: z.coerce.number().min(1).optional(),
 });
 
 export default function Campaigns() {
@@ -44,7 +43,7 @@ export default function Campaigns() {
     defaultValues: { 
       name: "", description: "", startDate: new Date().toISOString().split('T')[0],
       durationDays: 14, postsPerDay: 2, postingTimes: "09:00,15:00",
-      hashtags: "#marketing", repetitionIntervalDays: 7
+      hashtags: "#marketing"
     },
   });
 
@@ -186,13 +185,6 @@ export default function Campaigns() {
                     <FormField control={form.control} name="postsPerDay" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Posts Per Day</FormLabel>
-                        <FormControl><Input type="number" min={1} className="rounded-xl h-11" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="repetitionIntervalDays" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Repeat Interval (Days)</FormLabel>
                         <FormControl><Input type="number" min={1} className="rounded-xl h-11" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>

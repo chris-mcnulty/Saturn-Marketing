@@ -5,16 +5,19 @@ import {
   useUpdateAsset,
   useExtractAssetContent,
   useListCategories,
+  useCreateCampaign,
+  useAddCampaignAsset,
   getGetAssetQueryKey,
   getListAssetsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +35,7 @@ import {
   Link as LinkIcon,
   Calendar,
   Clock,
+  Megaphone,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -80,7 +84,11 @@ export default function AssetDetail() {
   const id = parseInt(params?.id || "0");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
+  const [isInstantCampaignOpen, setIsInstantCampaignOpen] = useState(false);
+  const [instantDuration, setInstantDuration] = useState(14);
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
 
   const isValidId = Number.isFinite(id) && id > 0;
   const { data: asset, isLoading, error: fetchError } = useGetAsset(id, {
@@ -89,6 +97,47 @@ export default function AssetDetail() {
   const { data: categories } = useListCategories();
   const updateMutation = useUpdateAsset();
   const extractMutation = useExtractAssetContent();
+  const createCampaignMut = useCreateCampaign();
+  const addCampaignAssetMut = useAddCampaignAsset();
+
+  const handleInstantCampaign = async () => {
+    if (!asset) return;
+    setIsCreatingCampaign(true);
+    try {
+      const campaignName = `${asset.title || "Untitled"} Campaign`;
+      const startDate = new Date().toISOString().split("T")[0];
+      const newCampaign = await new Promise<any>((resolve, reject) => {
+        createCampaignMut.mutate({
+          data: {
+            name: campaignName,
+            startDate,
+            durationDays: instantDuration,
+            postsPerDay: 2,
+            postingTimes: "09:00,15:00",
+          },
+        }, {
+          onSuccess: (data) => resolve(data),
+          onError: (err) => reject(err),
+        });
+      });
+      await new Promise<void>((resolve, reject) => {
+        addCampaignAssetMut.mutate({
+          id: newCampaign.id,
+          data: { assetId: id },
+        }, {
+          onSuccess: () => resolve(),
+          onError: (err) => reject(err),
+        });
+      });
+      setIsInstantCampaignOpen(false);
+      toast({ title: "Campaign created! Redirecting..." });
+      setLocation(`/campaigns/${newCampaign.id}`);
+    } catch {
+      toast({ title: "Failed to create campaign", variant: "destructive" });
+    } finally {
+      setIsCreatingCampaign(false);
+    }
+  };
 
   const form = useForm<EditFormValues>({
     resolver: zodResolver(editSchema),
@@ -271,6 +320,13 @@ export default function AssetDetail() {
                 }`}
               />
               Re-extract Content
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl h-10"
+              onClick={() => setIsInstantCampaignOpen(true)}
+            >
+              <Megaphone className="w-4 h-4 mr-2" /> Instant Campaign
             </Button>
             {!isEditing && (
               <Button
@@ -546,6 +602,38 @@ export default function AssetDetail() {
             </Card>
           </div>
         </div>
+
+        <Dialog open={isInstantCampaignOpen} onOpenChange={setIsInstantCampaignOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-display">Instant Campaign</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Create a campaign for <span className="font-semibold text-foreground">{asset.title || "this asset"}</span> with default settings. You can customize everything on the campaign page afterward.
+              </p>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Campaign Duration (Days)</label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={instantDuration}
+                  onChange={e => setInstantDuration(parseInt(e.target.value) || 14)}
+                  className="rounded-xl h-11"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Defaults: 2 posts/day at 9:00 AM and 3:00 PM, starting today.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsInstantCampaignOpen(false)} className="rounded-xl">Cancel</Button>
+              <Button onClick={handleInstantCampaign} disabled={isCreatingCampaign} className="rounded-xl bg-primary text-primary-foreground">
+                {isCreatingCampaign && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Megaphone className="w-4 h-4 mr-2" /> Create Campaign
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

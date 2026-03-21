@@ -22,7 +22,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Plus, Download, Wand2, Link as LinkIcon, Trash2, Edit } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Download, Wand2, Link as LinkIcon, Trash2, Edit, Pencil, Save, X } from "lucide-react";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -64,6 +64,11 @@ export default function CampaignDetail() {
   const [exportFormat, setExportFormat] = useState<string>("socialpilot");
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<number>>(new Set());
   const [isAddingAssets, setIsAddingAssets] = useState(false);
+  const [isEditingCampaign, setIsEditingCampaign] = useState(false);
+  const [editFields, setEditFields] = useState({
+    name: "", description: "", startDate: "", durationDays: 7,
+    postsPerDay: 1, postingTimes: "", hashtags: "",
+  });
 
   useEffect(() => {
     if (savedPosts && savedPosts.length > 0 && generatedPosts === null) {
@@ -76,6 +81,42 @@ export default function CampaignDetail() {
   const handleStatusChange = (newStatus: "draft" | "scheduled" | "active" | "paused" | "completed") => {
     updateCampaignMut.mutate({ id, data: { status: newStatus } }, {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) })
+    });
+  };
+
+  const openEditCampaign = () => {
+    if (!campaign) return;
+    const startDateStr = typeof campaign.startDate === "string"
+      ? campaign.startDate.split("T")[0]
+      : new Date(campaign.startDate).toISOString().split("T")[0];
+    setEditFields({
+      name: campaign.name,
+      description: campaign.description || "",
+      startDate: startDateStr,
+      durationDays: campaign.durationDays,
+      postsPerDay: campaign.postsPerDay,
+      postingTimes: campaign.postingTimes || "",
+      hashtags: campaign.hashtags || "",
+    });
+    setIsEditingCampaign(true);
+  };
+
+  const saveEditCampaign = () => {
+    updateCampaignMut.mutate({ id, data: {
+      name: editFields.name,
+      description: editFields.description || undefined,
+      startDate: editFields.startDate,
+      durationDays: editFields.durationDays,
+      postsPerDay: editFields.postsPerDay,
+      postingTimes: editFields.postingTimes || undefined,
+      hashtags: editFields.hashtags || undefined,
+    }}, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
+        setIsEditingCampaign(false);
+        toast({ title: "Campaign updated" });
+      },
+      onError: () => toast({ title: "Failed to update campaign", variant: "destructive" }),
     });
   };
 
@@ -246,6 +287,9 @@ export default function CampaignDetail() {
               <p className="text-muted-foreground mt-2 text-lg">{campaign.description || "No description provided."}</p>
             </div>
             <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={openEditCampaign} className="h-11 rounded-xl">
+                <Pencil className="w-4 h-4 mr-2" /> Edit
+              </Button>
               <select 
                 value={campaign.status}
                 onChange={(e) => handleStatusChange(e.target.value as any)}
@@ -264,9 +308,10 @@ export default function CampaignDetail() {
           </div>
           
           <div className="flex flex-wrap gap-x-8 gap-y-4 mt-8 pt-6 border-t border-border/50 text-sm">
-            <div><span className="text-muted-foreground">Start:</span> <span className="font-semibold">{campaign.startDate}</span></div>
+            <div><span className="text-muted-foreground">Start:</span> <span className="font-semibold">{typeof campaign.startDate === "string" ? campaign.startDate.split("T")[0] : campaign.startDate}</span></div>
             <div><span className="text-muted-foreground">Duration:</span> <span className="font-semibold">{campaign.durationDays} days</span></div>
             <div><span className="text-muted-foreground">Freq:</span> <span className="font-semibold">{campaign.postsPerDay}/day</span></div>
+            {campaign.postingTimes && <div><span className="text-muted-foreground">Times:</span> <span className="font-semibold">{campaign.postingTimes}</span></div>}
             <div><span className="text-muted-foreground">Always-Include Tags:</span> <span className="font-semibold">{campaign.hashtags || 'None'}</span></div>
           </div>
         </div>
@@ -543,6 +588,52 @@ export default function CampaignDetail() {
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
+
+        <Dialog open={isEditingCampaign} onOpenChange={setIsEditingCampaign}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-display">Edit Campaign</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium mb-1.5 block">Campaign Name</label>
+                <Input value={editFields.name} onChange={e => setEditFields(f => ({...f, name: e.target.value}))} className="rounded-xl h-11" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium mb-1.5 block">Description</label>
+                <Input value={editFields.description} onChange={e => setEditFields(f => ({...f, description: e.target.value}))} className="rounded-xl h-11" placeholder="Optional notes" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Start Date</label>
+                <Input type="date" value={editFields.startDate} onChange={e => setEditFields(f => ({...f, startDate: e.target.value}))} className="rounded-xl h-11" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Duration (Days)</label>
+                <Input type="number" min={1} value={editFields.durationDays} onChange={e => setEditFields(f => ({...f, durationDays: parseInt(e.target.value) || 1}))} className="rounded-xl h-11" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Posts Per Day</label>
+                <Input type="number" min={1} value={editFields.postsPerDay} onChange={e => setEditFields(f => ({...f, postsPerDay: parseInt(e.target.value) || 1}))} className="rounded-xl h-11" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Posting Times</label>
+                <Input value={editFields.postingTimes} onChange={e => setEditFields(f => ({...f, postingTimes: e.target.value}))} className="rounded-xl h-11" placeholder="09:00, 15:00" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium mb-1.5 block">Always-Include Hashtags</label>
+                <Input value={editFields.hashtags} onChange={e => setEditFields(f => ({...f, hashtags: e.target.value}))} className="rounded-xl h-11" placeholder="#Marketing; #AI" />
+                <p className="text-xs text-muted-foreground mt-1">Separate with semicolons.</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditingCampaign(false)} className="rounded-xl">Cancel</Button>
+              <Button onClick={saveEditCampaign} disabled={updateCampaignMut.isPending || !editFields.name} className="rounded-xl bg-primary text-primary-foreground">
+                {updateCampaignMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Save className="w-4 h-4 mr-2" /> Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showPostWarning} onOpenChange={setShowPostWarning}>
           <DialogContent>

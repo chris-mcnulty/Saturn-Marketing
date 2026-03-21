@@ -218,7 +218,6 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
   const startDate = new Date(campaign.startDate);
   const posts: PostSlot[] = [];
   const assetUsageCount = new Map<number, number>();
-  const assetLastUsed = new Map<number, Date>();
 
   for (let day = 0; day < campaign.durationDays; day++) {
     for (let postIdx = 0; postIdx < campaign.postsPerDay; postIdx++) {
@@ -231,24 +230,8 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
       const dateTimeStr = formatDateForSocialPilot(currentDate);
 
-      let selectedAsset = null;
-      for (const asset of activeAssets) {
-        const lastUsed = assetLastUsed.get(asset.assetId);
-        if (!lastUsed) {
-          selectedAsset = asset;
-          break;
-        }
-        const daysSinceUse = Math.floor((currentDate.getTime() - lastUsed.getTime()) / (1000 * 60 * 60 * 24));
-        if (daysSinceUse >= campaign.repetitionIntervalDays) {
-          selectedAsset = asset;
-          break;
-        }
-      }
-
-      if (!selectedAsset) {
-        const slotIndex = (day * campaign.postsPerDay + postIdx) % activeAssets.length;
-        selectedAsset = activeAssets[slotIndex];
-      }
+      const slotIndex = (day * campaign.postsPerDay + postIdx) % activeAssets.length;
+      const selectedAsset = activeAssets[slotIndex];
 
       const postText = selectedAsset.overrideSummaryText || selectedAsset.summaryText || `Check out: ${selectedAsset.url}`;
       const imageUrl = selectedAsset.overrideImageUrl || selectedAsset.suggestedImageUrl || null;
@@ -278,7 +261,6 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
       finalText += `\n${selectedAsset.url}`;
 
       assetUsageCount.set(selectedAsset.assetId, usageCount + 1);
-      assetLastUsed.set(selectedAsset.assetId, currentDate);
 
       const allTagsForCsv = [
         ...campaignHashtags.map((h: string) => h.replace(/#/g, "")),
