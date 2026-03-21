@@ -6,6 +6,7 @@ declare module "express-session" {
   interface SessionData {
     userId: number;
     tenantId: number;
+    activeTenantId?: number;
   }
 }
 
@@ -17,6 +18,14 @@ declare global {
       userRole?: string;
     }
   }
+}
+
+export function hasCrossTenantReadAccess(role: string): boolean {
+  return role === "Global Admin" || role === "Consultant";
+}
+
+export function hasAdminAccess(role: string): boolean {
+  return role === "Global Admin" || role === "Domain Admin";
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -32,6 +41,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
+  if (user.status !== "active") {
+    req.session.destroy(() => {});
+    res.status(401).json({ error: "Account is not active" });
+    return;
+  }
+
   req.userId = user.id;
   req.tenantId = user.tenantId;
   req.userRole = user.role;
@@ -39,8 +54,16 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  if (req.userRole !== "admin") {
+  if (!hasAdminAccess(req.userRole || "")) {
     res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  next();
+}
+
+export function requireGlobalAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (req.userRole !== "Global Admin") {
+    res.status(403).json({ error: "Global Admin access required" });
     return;
   }
   next();

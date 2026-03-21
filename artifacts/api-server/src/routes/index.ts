@@ -8,6 +8,7 @@ import campaignsRouter from "./campaigns";
 import socialAccountsRouter from "./socialAccounts";
 import tenantRouter from "./tenant";
 import csvRouter from "./csv";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(campaignsRouter);
 router.use(socialAccountsRouter);
 router.use(tenantRouter);
 router.use(csvRouter);
+router.use(adminRouter);
 
 export default router;

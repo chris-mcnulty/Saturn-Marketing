@@ -7,7 +7,7 @@ import {
   UpdateTenantUserBody,
   RemoveTenantUserParams,
 } from "@workspace/api-zod";
-import { requireAuth, requireAdmin } from "../middlewares/auth";
+import { requireAuth, requireAdmin, hasAdminAccess } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
@@ -38,6 +38,9 @@ router.get("/tenant/users", requireAuth, async (req, res): Promise<void> => {
     name: usersTable.name,
     role: usersTable.role,
     tenantId: usersTable.tenantId,
+    status: usersTable.status,
+    authProvider: usersTable.authProvider,
+    emailVerified: usersTable.emailVerified,
     createdAt: usersTable.createdAt,
   }).from(usersTable)
     .where(eq(usersTable.tenantId, req.tenantId!))
@@ -58,6 +61,12 @@ router.patch("/tenant/users/:id", requireAuth, requireAdmin, async (req, res): P
     return;
   }
 
+  const allowedRoles = ["Standard User", "Domain Admin"];
+  if (!allowedRoles.includes(parsed.data.role)) {
+    res.status(400).json({ error: "Invalid role. Allowed roles: Standard User, Domain Admin" });
+    return;
+  }
+
   const [user] = await db.update(usersTable)
     .set({ role: parsed.data.role })
     .where(and(eq(usersTable.id, params.data.id), eq(usersTable.tenantId, req.tenantId!)))
@@ -74,6 +83,7 @@ router.patch("/tenant/users/:id", requireAuth, requireAdmin, async (req, res): P
     name: user.name,
     role: user.role,
     tenantId: user.tenantId,
+    status: user.status,
     createdAt: user.createdAt,
   });
 });

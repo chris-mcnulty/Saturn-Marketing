@@ -1,12 +1,13 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
-import { db, usersTable, tenantsTable } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
+import { db, usersTable, tenantsTable, domainBlocklistTable, emailVerificationTokensTable } from "@workspace/db";
 import {
   RegisterBody,
   LoginBody,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import crypto from "crypto";
 
 const router: IRouter = Router();
 
@@ -18,11 +19,18 @@ function formatAuthResponse(user: typeof usersTable.$inferSelect, tenant: typeof
       name: user.name,
       role: user.role,
       tenantId: user.tenantId,
+      avatar: user.avatar,
+      authProvider: user.authProvider,
+      emailVerified: user.emailVerified,
+      status: user.status,
       createdAt: user.createdAt.toISOString(),
     },
     tenant: {
       id: tenant.id,
       name: tenant.name,
+      domain: tenant.domain,
+      plan: tenant.plan,
+      status: tenant.status,
       createdAt: tenant.createdAt.toISOString(),
     },
   };
@@ -44,22 +52,58 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       return;
     }
 
+    const domain = email.split("@")[1].toLowerCase();
+
+    const [blockedDomain] = await db.select().from(domainBlocklistTable).where(eq(domainBlocklistTable.domain, domain));
+    if (blockedDomain) {
+      res.status(403).json({
+        error: "This email domain is not allowed for self-registration. Please use a work email address."
+      });
+      return;
+    }
+
+    const [existingTenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.domain, domain));
+
+    const role = existingTenant ? "Standard User" : "Domain Admin";
+
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const [tenant] = await db.insert(tenantsTable).values({ name: organizationName }).returning();
+    let tenant = existingTenant;
+    if (!tenant) {
+      const trialStartDate = new Date();
+      const trialEndsAt = new Date(trialStartDate);
+      trialEndsAt.setDate(trialEndsAt.getDate() + 60);
+
+      const [newTenant] = await db.insert(tenantsTable).values({
+        name: organizationName,
+        domain,
+        plan: "trial",
+        status: "active",
+        trialStartDate,
+        trialEndsAt,
+        userCount: 0,
+      }).returning();
+      tenant = newTenant;
+    }
 
     const [user] = await db.insert(usersTable).values({
       tenantId: tenant.id,
       email,
       passwordHash,
       name,
-      role: "admin",
+      role,
+      avatar: name.charAt(0).toUpperCase(),
+      authProvider: "local",
+      emailVerified: true,
+      status: "active",
     }).returning();
 
     const defaultCategories = ["Workshop", "Model", "Podcast", "Service", "Case Study", "White Paper", "Video", "Session"];
-    const { categoriesTable } = await import("@workspace/db");
-    for (const catName of defaultCategories) {
-      await db.insert(categoriesTable).values({ tenantId: tenant.id, name: catName });
+    if (!existingTenant) {
+      const { categoriesTable } = await import("@workspace/db");
+      for (const catName of defaultCategories) {
+        await db.insert(categoriesTable).values({ tenantId: tenant.id, name: catName });
+      }
     }
 
     req.session.regenerate((err) => {
@@ -68,8 +112,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         return;
       }
       req.session.userId = user.id;
-      req.session.tenantId = tenant.id;
-      res.status(201).json(formatAuthResponse(user, tenant));
+      req.session.tenantId = tenant!.id;
+      res.status(201).json(formatAuthResponse(user, tenant!));
     });
   } catch (error: any) {
     console.error("Register error:", error);
@@ -90,6 +134,16 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email));
     if (!user) {
       res.status(401).json({ error: "Invalid email or password" });
+      return;
+    }
+
+    if (user.authProvider === "entra") {
+      res.status(401).json({ error: "Please use Microsoft SSO to sign in" });
+      return;
+    }
+
+    if (user.status !== "active") {
+      res.status(401).json({ error: "Account is not active. Please check your email for verification." });
       return;
     }
 
@@ -136,6 +190,11 @@ router.post("/auth/logout", (req, res): void => {
   req.session.destroy(() => {
     res.json({ message: "Logged out" });
   });
+});
+
+router.get("/auth/entra/status", (_req, res): void => {
+  const configured = !!(process.env.ENTRA_CLIENT_ID && process.env.ENTRA_TENANT_ID && process.env.ENTRA_CLIENT_SECRET);
+  res.json({ configured });
 });
 
 export default router;

@@ -7,3 +7,8 @@ export * from "./campaigns";
 export * from "./campaignAssets";
 export * from "./socialAccounts";
 export * from "./campaignSocialAccounts";
+export * from "./servicePlans";
+export * from "./emailVerificationTokens";
+export * from "./tenantInvites";
+export * from "./domainBlocklist";
+export * from "./consultantAccess";

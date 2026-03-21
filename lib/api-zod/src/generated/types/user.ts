@@ -13,5 +13,9 @@ export interface User {
   name: string;
   role: UserRole;
   tenantId: number;
+  avatar?: string | null;
+  authProvider?: string | null;
+  emailVerified?: boolean | null;
+  status?: string | null;
   createdAt: Date;
 }

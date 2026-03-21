@@ -10,6 +10,8 @@ export type UpdateUserBodyRole =
   (typeof UpdateUserBodyRole)[keyof typeof UpdateUserBodyRole];
 
 export const UpdateUserBodyRole = {
-  admin: "admin",
-  standard: "standard",
+  "Global Admin": "Global Admin",
+  "Domain Admin": "Domain Admin",
+  "Standard User": "Standard User",
+  Consultant: "Consultant",
 } as const;

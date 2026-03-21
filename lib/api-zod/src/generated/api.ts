@@ -40,14 +40,21 @@ export const LoginResponse = zod.object({
     id: zod.number(),
     email: zod.string(),
     name: zod.string(),
-    role: zod.enum(["admin", "standard"]),
+    role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
     tenantId: zod.number(),
-    createdAt: zod.date(),
+    avatar: zod.string().nullable().optional(),
+    authProvider: zod.string().nullable().optional(),
+    emailVerified: zod.boolean().nullable().optional(),
+    status: zod.string().nullable().optional(),
+    createdAt: zod.string(),
   }),
   tenant: zod.object({
     id: zod.number(),
     name: zod.string(),
-    createdAt: zod.date(),
+    domain: zod.string().optional(),
+    plan: zod.string().optional(),
+    status: zod.string().optional(),
+    createdAt: zod.string(),
   }),
 });
 
@@ -59,14 +66,21 @@ export const GetMeResponse = zod.object({
     id: zod.number(),
     email: zod.string(),
     name: zod.string(),
-    role: zod.enum(["admin", "standard"]),
+    role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
     tenantId: zod.number(),
-    createdAt: zod.date(),
+    avatar: zod.string().nullable().optional(),
+    authProvider: zod.string().nullable().optional(),
+    emailVerified: zod.boolean().nullable().optional(),
+    status: zod.string().nullable().optional(),
+    createdAt: zod.string(),
   }),
   tenant: zod.object({
     id: zod.number(),
     name: zod.string(),
-    createdAt: zod.date(),
+    domain: zod.string().optional(),
+    plan: zod.string().optional(),
+    status: zod.string().optional(),
+    createdAt: zod.string(),
   }),
 });
 
@@ -683,7 +697,7 @@ export const ListTenantUsersResponseItem = zod.object({
   id: zod.number(),
   email: zod.string(),
   name: zod.string(),
-  role: zod.enum(["admin", "standard"]),
+  role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
   tenantId: zod.number(),
   createdAt: zod.date(),
 });
@@ -697,14 +711,14 @@ export const UpdateTenantUserParams = zod.object({
 });
 
 export const UpdateTenantUserBody = zod.object({
-  role: zod.enum(["admin", "standard"]).optional(),
+  role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]).optional(),
 });
 
 export const UpdateTenantUserResponse = zod.object({
   id: zod.number(),
   email: zod.string(),
   name: zod.string(),
-  role: zod.enum(["admin", "standard"]),
+  role: zod.enum(["Global Admin", "Domain Admin", "Standard User", "Consultant"]),
   tenantId: zod.number(),
   createdAt: zod.date(),
 });

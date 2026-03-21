@@ -2,7 +2,7 @@
 
 ## Overview
 
-Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for generating and managing social media posts across multiple organizations. Built as a pnpm workspace monorepo using TypeScript.
+Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for generating and managing social media posts across multiple organizations. Built as a pnpm workspace monorepo using TypeScript. Implements Orbit's user/tenant management patterns for enterprise-grade multi-tenancy.
 
 ## Synozur Platform Ecosystem
 
@@ -23,11 +23,16 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Build**: esbuild (CJS bundle)
 - **Frontend**: React + Vite + TailwindCSS + Wouter + TanStack React Query
 - **AI**: OpenAI via Replit AI Integrations (gpt-4o-mini for content extraction and post variations)
-- **Auth**: Session-based (express-session + bcryptjs), no JWT
+- **Auth**: Session-based (express-session + bcryptjs), no JWT. Entra SSO support (planned).
 
 ## Core Features
 
-- **Multi-tenant auth**: Register creates organization + admin user + default categories. Session-based with role support (admin/standard).
+- **Multi-tenant auth**: Domain-based tenant provisioning. First user for a domain becomes Domain Admin. Session-based with Orbit role system.
+- **Roles**: Global Admin, Domain Admin, Standard User, Consultant (from Orbit)
+- **Service Plans**: trial (60-day), free, pro, enterprise — with feature flags (JSONB), usage limits, user limits
+- **Domain Blocklist**: Blocks personal email providers (gmail, yahoo, hotmail, etc.) from self-registration
+- **Tenant Invites**: Domain/Global Admins can invite users with token-based acceptance flow
+- **Consultant Access**: Global Admin can grant consultants read access to specific tenants
 - **Content Asset Library**: Add URLs, AI-powered content extraction (cheerio + OpenAI for summaries), category tagging, active/inactive toggle.
 - **Brand Asset Library**: Manage brand images with titles, descriptions, and tags.
 - **Campaign Management**: Create campaigns with scheduling (start date, duration, posts/day, posting times), assign assets and social accounts.
@@ -76,8 +81,11 @@ Express 5 API server with session-based auth, multi-tenant data isolation, AI co
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
 - App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, express-session, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv
-- Middleware: `src/middlewares/auth.ts` — `requireAuth` (session check), `requireAdmin` (role check)
+- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv, admin
+- Auth routes: `src/routes/auth.ts` — register (domain-based with blocklist check), login (SSO-aware), me, logout, Entra SSO status
+- Admin routes: `src/routes/admin.ts` — service plans CRUD, domain blocklist, tenant management, user management, tenant invites, consultant access
+- Middleware: `src/middlewares/auth.ts` — `requireAuth`, `requireAdmin` (Domain Admin+), `requireGlobalAdmin`
+- Services: `src/services/plan-policy.ts` — feature registry, plan limits, DB-cached plan features with TTL
 - Content Extractor: `src/lib/contentExtractor.ts` — cheerio + OpenAI for URL metadata extraction
 - Depends on: `@workspace/db`, `@workspace/api-zod`, `@workspace/integrations-openai-ai-server`
 
@@ -99,7 +107,12 @@ React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 
 Database layer using Drizzle ORM with PostgreSQL.
 
-Schema tables: tenants, users, categories, assets, brandAssets, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts
+Schema tables:
+- **Core**: tenants, users, categories, assets, brandAssets, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts
+- **Orbit patterns**: servicePlans, emailVerificationTokens, tenantInvites, domainBlocklist, consultantAccess
+
+Tenants table: domain (unique), name, plan, status, trial dates, user/analysis/competitor limits, Entra SSO fields, branding colors
+Users table: tenantId (FK), email, passwordHash, name, role, avatar, entraId, authProvider, emailVerified, status
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 
@@ -117,9 +130,20 @@ Generated React Query hooks and fetch client from the OpenAPI spec. Custom fetch
 
 Utility scripts package. Run via `pnpm --filter @workspace/scripts run <script>`.
 
+## Database Schema Notes
+
+- **ID columns**: All tables use `serial` primary keys (auto-increment integers). Never change to varchar/UUID.
+- **Roles**: "Global Admin", "Domain Admin", "Standard User", "Consultant" — stored as text
+- **Service Plans**: trial, free, pro, enterprise — features stored as JSONB, limits as integer columns
+- **Domain Blocklist**: Seeded with common personal email providers (gmail.com, yahoo.com, etc.)
+- **Zod date issue**: Always convert string dates to Date objects before safeParse. Do NOT use Zod `.parse()` on route responses.
+
 ## Environment Variables
 
 - `DATABASE_URL` — PostgreSQL connection string (auto-provided by Replit)
 - `SESSION_SECRET` — Secret for express-session (has fallback default)
 - `AI_INTEGRATIONS_OPENAI_BASE_URL` — Auto-set by Replit AI Integrations
 - `AI_INTEGRATIONS_OPENAI_API_KEY` — Auto-set by Replit AI Integrations
+- `ENTRA_CLIENT_ID` — (Optional) Azure AD App Registration Client ID for Entra SSO
+- `ENTRA_TENANT_ID` — (Optional) Azure AD Tenant ID for Entra SSO
+- `ENTRA_CLIENT_SECRET` — (Optional) Azure AD Client Secret for Entra SSO

@@ -33,8 +33,10 @@ export interface LoginBody {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const UserRole = {
-  admin: "admin",
-  standard: "standard",
+  "Global Admin": "Global Admin",
+  "Domain Admin": "Domain Admin",
+  "Standard User": "Standard User",
+  Consultant: "Consultant",
 } as const;
 
 export interface User {
@@ -43,12 +45,19 @@ export interface User {
   name: string;
   role: UserRole;
   tenantId: number;
+  avatar?: string | null;
+  authProvider?: string | null;
+  emailVerified?: boolean | null;
+  status?: string | null;
   createdAt: string;
 }
 
 export interface Tenant {
   id: number;
   name: string;
+  domain?: string;
+  plan?: string;
+  status?: string;
   createdAt: string;
 }
 
@@ -65,8 +74,10 @@ export type UpdateUserBodyRole =
   (typeof UpdateUserBodyRole)[keyof typeof UpdateUserBodyRole];
 
 export const UpdateUserBodyRole = {
-  admin: "admin",
-  standard: "standard",
+  "Global Admin": "Global Admin",
+  "Domain Admin": "Domain Admin",
+  "Standard User": "Standard User",
+  Consultant: "Consultant",
 } as const;
 
 export interface UpdateUserBody {
