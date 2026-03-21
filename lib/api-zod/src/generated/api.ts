@@ -164,6 +164,8 @@ export const ListAssetsResponseItem = zod.object({
   summaryText: zod.string().nullish(),
   suggestedImageUrl: zod.string().nullish(),
   extractionStatus: zod.enum(["pending", "processing", "completed", "failed"]),
+  mentions: zod.string().nullish(),
+  hashtags: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -196,6 +198,8 @@ export const GetAssetResponse = zod.object({
   summaryText: zod.string().nullish(),
   suggestedImageUrl: zod.string().nullish(),
   extractionStatus: zod.enum(["pending", "processing", "completed", "failed"]),
+  mentions: zod.string().nullish(),
+  hashtags: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -214,6 +218,8 @@ export const UpdateAssetBody = zod.object({
   isActive: zod.boolean().optional(),
   summaryText: zod.string().nullish(),
   suggestedImageUrl: zod.string().nullish(),
+  mentions: zod.string().nullish(),
+  hashtags: zod.string().nullish(),
 });
 
 export const UpdateAssetResponse = zod.object({
@@ -227,6 +233,8 @@ export const UpdateAssetResponse = zod.object({
   summaryText: zod.string().nullish(),
   suggestedImageUrl: zod.string().nullish(),
   extractionStatus: zod.enum(["pending", "processing", "completed", "failed"]),
+  mentions: zod.string().nullish(),
+  hashtags: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -256,6 +264,8 @@ export const ExtractAssetContentResponse = zod.object({
   summaryText: zod.string().nullish(),
   suggestedImageUrl: zod.string().nullish(),
   extractionStatus: zod.enum(["pending", "processing", "completed", "failed"]),
+  mentions: zod.string().nullish(),
+  hashtags: zod.string().nullish(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -533,6 +543,8 @@ export const GetCampaignResponse = zod.object({
           "completed",
           "failed",
         ]),
+        mentions: zod.string().nullish(),
+        hashtags: zod.string().nullish(),
         createdAt: zod.date(),
         updatedAt: zod.date(),
       }),
@@ -636,6 +648,8 @@ export const ListCampaignAssetsResponseItem = zod.object({
       "completed",
       "failed",
     ]),
+    mentions: zod.string().nullish(),
+    hashtags: zod.string().nullish(),
     createdAt: zod.date(),
     updatedAt: zod.date(),
   }),
@@ -689,6 +703,8 @@ export const UpdateCampaignAssetResponse = zod.object({
       "completed",
       "failed",
     ]),
+    mentions: zod.string().nullish(),
+    hashtags: zod.string().nullish(),
     createdAt: zod.date(),
     updatedAt: zod.date(),
   }),

@@ -34,7 +34,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Domain Blocklist**: Blocks personal email providers (gmail, yahoo, hotmail, etc.) from self-registration
 - **Tenant Invites**: Domain/Global Admins can invite users with token-based acceptance flow
 - **Consultant Access**: Global Admin can grant consultants read access to specific tenants
-- **Content Asset Library**: Add URLs, AI-powered content extraction (cheerio + OpenAI for summaries), category tagging, active/inactive toggle.
+- **Content Asset Library**: Add URLs, AI-powered content extraction (cheerio + OpenAI for summaries), category tagging, active/inactive toggle. Per-asset @mentions and hashtags that persist through all generated post variations.
 - **Brand Asset Library**: Manage brand images with titles, descriptions, and tags.
 - **Campaign Management**: Create campaigns with scheduling (start date, duration, posts/day, posting times), assign assets and social accounts.
 - **Multi-Platform CSV Export**: Generate bulk posts with AI-powered variation. Supports SocialPilot, Hootsuite, Sprout Social, and Buffer formats. Max 500 posts per export. AI calls (hashtag generation + 3 text variations per asset) are pre-generated in parallel with bounded concurrency (5 concurrent asset batches) to avoid timeouts on large campaigns. Generated posts are persisted to the `generated_posts` table so they survive page refreshes and can be re-exported without regeneration.

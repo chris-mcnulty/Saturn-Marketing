@@ -14,6 +14,8 @@ export const assetsTable = pgTable("assets", {
   summaryText: text("summary_text"),
   suggestedImageUrl: text("suggested_image_url"),
   extractionStatus: text("extraction_status").notNull().default("pending"),
+  mentions: text("mentions"),
+  hashtags: text("hashtags"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -1335,6 +1335,10 @@ components:
         extractionStatus:
           type: string
           enum: [pending, processing, completed, failed]
+        mentions:
+          type: ["string", "null"]
+        hashtags:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -1376,6 +1380,10 @@ components:
         summaryText:
           type: ["string", "null"]
         suggestedImageUrl:
+          type: ["string", "null"]
+        mentions:
+          type: ["string", "null"]
+        hashtags:
           type: ["string", "null"]
 
     BrandAssetCategory:

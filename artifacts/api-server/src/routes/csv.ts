@@ -154,6 +154,8 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
     summaryText: assetsTable.summaryText,
     suggestedImageUrl: assetsTable.suggestedImageUrl,
     isActive: assetsTable.isActive,
+    mentions: assetsTable.mentions,
+    hashtags: assetsTable.hashtags,
   })
     .from(campaignAssetsTable)
     .innerJoin(assetsTable, eq(campaignAssetsTable.assetId, assetsTable.id))
@@ -274,8 +276,24 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
         }
       }
 
-      if (campaignHashtags.length > 0) {
-        const hashtagStr = campaignHashtags.join(" ");
+      const assetMentions = selectedAsset.mentions
+        ? selectedAsset.mentions.split(",").map((m: string) => m.trim()).filter(Boolean)
+        : [];
+      if (assetMentions.length > 0) {
+        finalText = `${finalText}\n\n${assetMentions.join(" ")}`;
+      }
+
+      const assetHashtags = selectedAsset.hashtags
+        ? selectedAsset.hashtags.split(",").map((h: string) => {
+            const tag = h.trim();
+            return tag.startsWith("#") ? tag : `#${tag}`;
+          }).filter((h: string) => h !== "#")
+        : [];
+
+      if (campaignHashtags.length > 0 || assetHashtags.length > 0) {
+        const allHashtags = [...campaignHashtags, ...assetHashtags];
+        const uniqueHashtags = [...new Set(allHashtags)];
+        const hashtagStr = uniqueHashtags.join(" ");
         if (!finalText.includes(hashtagStr)) {
           finalText = `${finalText}\n\n${hashtagStr}`;
         }
@@ -292,6 +310,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
       const allTagsForCsv = [
         ...campaignHashtags.map((h: string) => h.replace(/#/g, "")),
+        ...assetHashtags.map((h: string) => h.replace(/#/g, "")),
         ...generatedHashtags.map((h: string) => h.replace(/#/g, "")),
       ].filter(Boolean).join(";");
 
@@ -300,19 +319,22 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
         let accountPostContent = finalText;
         if (isTwitterAccount && accountPostContent.length > 280) {
           const urlSuffix = `\n${selectedAsset.url}`;
+          const mentionSection = assetMentions.length > 0 ? assetMentions.join(" ") : "";
           const hashtagSection = [
             ...campaignHashtags,
+            ...assetHashtags,
             ...generatedHashtags,
           ].filter(Boolean).join(" ");
-          const reservedLength = urlSuffix.length + (hashtagSection ? hashtagSection.length + 2 : 0);
+          const trailingSections = [mentionSection, hashtagSection].filter(Boolean).join(" ");
+          const reservedLength = urlSuffix.length + (trailingSections ? trailingSections.length + 2 : 0);
           const maxBodyLength = 280 - reservedLength;
           const bodyParts = accountPostContent.split("\n\n");
           let body = bodyParts[0] || "";
           if (body.length > maxBodyLength) {
             body = body.substring(0, maxBodyLength - 1) + "…";
           }
-          accountPostContent = hashtagSection
-            ? `${body}\n\n${hashtagSection}${urlSuffix}`
+          accountPostContent = trailingSections
+            ? `${body}\n\n${trailingSections}${urlSuffix}`
             : `${body}${urlSuffix}`;
           if (accountPostContent.length > 280) {
             accountPostContent = accountPostContent.substring(0, 279) + "…";

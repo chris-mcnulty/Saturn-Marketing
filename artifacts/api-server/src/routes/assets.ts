@@ -109,6 +109,8 @@ const assetSelect = {
   summaryText: assetsTable.summaryText,
   suggestedImageUrl: assetsTable.suggestedImageUrl,
   extractionStatus: assetsTable.extractionStatus,
+  mentions: assetsTable.mentions,
+  hashtags: assetsTable.hashtags,
   createdAt: assetsTable.createdAt,
   updatedAt: assetsTable.updatedAt,
 };

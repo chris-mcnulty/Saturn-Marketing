@@ -48,6 +48,8 @@ const editSchema = z.object({
   categoryId: z.coerce.number().optional().nullable(),
   isActive: z.boolean(),
   summaryText: z.string().optional().nullable(),
+  mentions: z.string().optional().nullable(),
+  hashtags: z.string().optional().nullable(),
 });
 
 type EditFormValues = z.infer<typeof editSchema>;
@@ -157,6 +159,8 @@ export default function AssetDetail() {
       categoryId: null,
       isActive: true,
       summaryText: "",
+      mentions: "",
+      hashtags: "",
     },
   });
 
@@ -168,6 +172,8 @@ export default function AssetDetail() {
         categoryId: asset.categoryId || null,
         isActive: asset.isActive,
         summaryText: asset.summaryText || "",
+        mentions: asset.mentions || "",
+        hashtags: asset.hashtags || "",
       });
     }
   }, [asset, form]);
@@ -182,6 +188,8 @@ export default function AssetDetail() {
           categoryId: data.categoryId || null,
           isActive: data.isActive,
           summaryText: data.summaryText || null,
+          mentions: data.mentions || null,
+          hashtags: data.hashtags || null,
         },
       },
       {
@@ -222,6 +230,8 @@ export default function AssetDetail() {
         categoryId: asset.categoryId || null,
         isActive: asset.isActive,
         summaryText: asset.summaryText || "",
+        mentions: asset.mentions || "",
+        hashtags: asset.hashtags || "",
       });
     }
     setIsEditing(false);
@@ -458,6 +468,44 @@ export default function AssetDetail() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="mentions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>@Mentions</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="@handle1, @handle2, ..."
+                                className="rounded-xl"
+                                {...field}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Comma-separated @mentions added to every post variation</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="hashtags"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hashtags</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="#tag1, #tag2, ..."
+                                className="rounded-xl"
+                                {...field}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Comma-separated hashtags added to every post variation</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <div className="flex items-center gap-3 pt-2">
                         <Button
                           type="submit"
@@ -529,6 +577,42 @@ export default function AssetDetail() {
                     </dl>
                   </CardContent>
                 </Card>
+
+                {(asset.mentions || asset.hashtags) && (
+                  <Card className="rounded-2xl border-border/50 shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-display">Post Tags</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-4">
+                        {asset.mentions && (
+                          <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                            <dt className="text-sm font-medium text-muted-foreground w-32 shrink-0">@Mentions</dt>
+                            <dd className="text-sm text-foreground flex flex-wrap gap-1.5">
+                              {asset.mentions.split(",").map((m: string) => m.trim()).filter(Boolean).map((mention: string, i: number) => (
+                                <span key={i} className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 text-xs font-medium">
+                                  {mention.startsWith("@") ? mention : `@${mention}`}
+                                </span>
+                              ))}
+                            </dd>
+                          </div>
+                        )}
+                        {asset.hashtags && (
+                          <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                            <dt className="text-sm font-medium text-muted-foreground w-32 shrink-0">Hashtags</dt>
+                            <dd className="text-sm text-foreground flex flex-wrap gap-1.5">
+                              {asset.hashtags.split(",").map((h: string) => h.trim()).filter(Boolean).map((tag: string, i: number) => (
+                                <span key={i} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                  {tag.startsWith("#") ? tag : `#${tag}`}
+                                </span>
+                              ))}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card className="rounded-2xl border-border/50 shadow-sm">
                   <CardHeader>

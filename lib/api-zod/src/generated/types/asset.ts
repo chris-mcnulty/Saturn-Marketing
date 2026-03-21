@@ -23,6 +23,10 @@ export interface Asset {
   /** @nullable */
   suggestedImageUrl?: string | null;
   extractionStatus: AssetExtractionStatus;
+  /** @nullable */
+  mentions?: string | null;
+  /** @nullable */
+  hashtags?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

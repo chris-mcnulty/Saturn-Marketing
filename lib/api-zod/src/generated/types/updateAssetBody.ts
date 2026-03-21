@@ -17,4 +17,8 @@ export interface UpdateAssetBody {
   summaryText?: string | null;
   /** @nullable */
   suggestedImageUrl?: string | null;
+  /** @nullable */
+  mentions?: string | null;
+  /** @nullable */
+  hashtags?: string | null;
 }

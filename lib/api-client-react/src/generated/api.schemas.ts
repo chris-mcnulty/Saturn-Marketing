@@ -129,6 +129,10 @@ export interface Asset {
   /** @nullable */
   suggestedImageUrl?: string | null;
   extractionStatus: AssetExtractionStatus;
+  /** @nullable */
+  mentions?: string | null;
+  /** @nullable */
+  hashtags?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -150,6 +154,10 @@ export interface UpdateAssetBody {
   summaryText?: string | null;
   /** @nullable */
   suggestedImageUrl?: string | null;
+  /** @nullable */
+  mentions?: string | null;
+  /** @nullable */
+  hashtags?: string | null;
 }
 
 export interface BrandAssetCategory {
