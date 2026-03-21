@@ -31,7 +31,7 @@ function setupButtons() {
   document.getElementById("edit-save").addEventListener("click", saveEdit);
 
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.imageAssets) {
+    if (changes.imageAssets || changes.contentAssets) {
       loadLists();
     }
   });
@@ -164,6 +164,7 @@ function renderImageList(items) {
         </div>
       </div>
       <img class="item-image-preview" src="${escHtml(item.imageUrl)}" alt="${escHtml(item.altText || "")}" />
+      ${item.pageUrl ? `<div class="item-url">${escHtml(item.pageUrl)}</div>` : ""}
       ${item.tags ? `<div class="item-tags">${item.tags.split(",").map((t) => `<span class="item-tag">${escHtml(t.trim())}</span>`).join("")}</div>` : ""}
     </div>
   `
