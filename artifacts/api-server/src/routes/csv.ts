@@ -91,11 +91,14 @@ async function generateHashtags(
   }
 }
 
-async function generateVariation(originalText: string, groundingContext: string): Promise<string> {
+async function generateVariation(originalText: string, groundingContext: string, hasTwitter: boolean = false): Promise<string> {
   try {
     const systemPromptParts = [
       "You are a social media marketing expert. Rewrite the following social media post with different wording while keeping the same core message. Make it sound fresh and engaging. Return only the rewritten post text, nothing else.",
     ];
+    if (hasTwitter) {
+      systemPromptParts.push("IMPORTANT: This post will be published on Twitter/X. The ENTIRE post including hashtags and URL MUST be 280 characters or fewer. Keep the message concise.");
+    }
     if (groundingContext) {
       systemPromptParts.push(groundingContext);
     }
@@ -143,12 +146,15 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
   const socialAccounts = await db.select({
     socialPilotAccountId: socialAccountsTable.socialPilotAccountId,
+    platform: socialAccountsTable.platform,
   })
     .from(campaignSocialAccountsTable)
     .innerJoin(socialAccountsTable, eq(campaignSocialAccountsTable.socialAccountId, socialAccountsTable.id))
     .where(eq(campaignSocialAccountsTable.campaignId, campaignId));
 
   if (socialAccounts.length === 0) throw new Error("No social accounts assigned to campaign");
+
+  const hasTwitter = socialAccounts.some(a => a.platform.toLowerCase() === "twitter" || a.platform.toLowerCase() === "x");
 
   const groundingContext = await getGroundingContext(tenantId);
 
@@ -170,7 +176,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
     const [hashtags, ...variations] = await Promise.all([
       generateHashtags(postText, asset.title, asset.url, groundingContext, campaignHashtags),
       ...Array.from({ length: VARIATIONS_PER_ASSET }, () =>
-        generateVariation(postText, groundingContext)
+        generateVariation(postText, groundingContext, hasTwitter)
       ),
     ]);
 
@@ -262,8 +268,30 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
       ].filter(Boolean).join(";");
 
       for (const account of socialAccounts) {
+        const isTwitterAccount = account.platform.toLowerCase() === "twitter" || account.platform.toLowerCase() === "x";
+        let accountPostContent = finalText;
+        if (isTwitterAccount && accountPostContent.length > 280) {
+          const urlSuffix = `\n${selectedAsset.url}`;
+          const hashtagSection = [
+            ...campaignHashtags,
+            ...generatedHashtags,
+          ].filter(Boolean).join(" ");
+          const reservedLength = urlSuffix.length + (hashtagSection ? hashtagSection.length + 2 : 0);
+          const maxBodyLength = 280 - reservedLength;
+          const bodyParts = accountPostContent.split("\n\n");
+          let body = bodyParts[0] || "";
+          if (body.length > maxBodyLength) {
+            body = body.substring(0, maxBodyLength - 1) + "…";
+          }
+          accountPostContent = hashtagSection
+            ? `${body}\n\n${hashtagSection}${urlSuffix}`
+            : `${body}${urlSuffix}`;
+          if (accountPostContent.length > 280) {
+            accountPostContent = accountPostContent.substring(0, 279) + "…";
+          }
+        }
         posts.push({
-          postContent: finalText,
+          postContent: accountPostContent,
           imageUrls: imageUrl,
           dateTime: dateTimeStr,
           accountId: account.socialPilotAccountId,

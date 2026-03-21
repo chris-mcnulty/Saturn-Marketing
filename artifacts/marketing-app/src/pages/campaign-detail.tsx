@@ -123,7 +123,10 @@ export default function CampaignDetail() {
     });
   };
 
-  const handleGenerate = () => {
+  const [showPostWarning, setShowPostWarning] = useState(false);
+  const [estimatedPostCount, setEstimatedPostCount] = useState(0);
+
+  const doGenerate = () => {
     generatePostsMut.mutate({ id }, {
       onSuccess: (data) => {
         setGeneratedPosts(data);
@@ -135,6 +138,23 @@ export default function CampaignDetail() {
         toast({ title: "Generation failed", description, variant: "destructive" });
       }
     });
+  };
+
+  const handleGenerate = () => {
+    if (!campaign) return;
+    const accountCount = campaign.socialAccounts?.length || 1;
+    const assetCount = campaign.assets?.length || 0;
+    if (assetCount === 0) {
+      doGenerate();
+      return;
+    }
+    const estimated = campaign.durationDays * campaign.postsPerDay * accountCount;
+    if (estimated > 500) {
+      setEstimatedPostCount(estimated);
+      setShowPostWarning(true);
+    } else {
+      doGenerate();
+    }
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -486,6 +506,32 @@ export default function CampaignDetail() {
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
+
+        <Dialog open={showPostWarning} onOpenChange={setShowPostWarning}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Large Campaign Warning</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p>
+                This campaign would generate approximately <span className="font-bold text-primary">{estimatedPostCount.toLocaleString()}</span> posts, 
+                but the maximum is <span className="font-bold">500 posts</span> per generation.
+              </p>
+              <p className="text-muted-foreground">
+                To get all your posts, consider splitting this into smaller campaigns with fewer days, fewer posts per day, or fewer social accounts.
+              </p>
+              <div className="bg-secondary/50 rounded-lg p-3 text-xs text-muted-foreground">
+                Current settings: {campaign?.durationDays} days x {campaign?.postsPerDay} posts/day x {campaign?.socialAccounts?.length || 0} accounts = {estimatedPostCount.toLocaleString()} posts
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPostWarning(false)}>Cancel</Button>
+              <Button onClick={() => { setShowPostWarning(false); doGenerate(); }}>
+                Generate First 500
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
