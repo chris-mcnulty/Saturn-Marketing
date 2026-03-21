@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout";
 import { 
   useListBrandAssets, 
   useCreateBrandAsset, 
+  useUpdateBrandAsset,
   useDeleteBrandAsset,
   useListBrandAssetCategories,
   getListBrandAssetsQueryKey
@@ -18,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Image as ImageIcon, Trash2, Filter } from "lucide-react";
+import { Loader2, Plus, Image as ImageIcon, Trash2, Filter, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 
 const createSchema = z.object({
@@ -31,6 +32,7 @@ const createSchema = z.object({
 
 export default function BrandAssets() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<{id: number; imageUrl: string; title: string; description: string; tags: string; categoryId: string} | null>(null);
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -38,6 +40,7 @@ export default function BrandAssets() {
   const { data: assets, isLoading } = useListBrandAssets();
   const { data: brandCategories } = useListBrandAssetCategories();
   const createMutation = useCreateBrandAsset();
+  const updateMutation = useUpdateBrandAsset();
   const deleteMutation = useDeleteBrandAsset();
 
   const form = useForm<z.infer<typeof createSchema>>({
@@ -69,6 +72,41 @@ export default function BrandAssets() {
       },
       onError: () => {
         toast({ title: "Failed to add asset", variant: "destructive" });
+      }
+    });
+  };
+
+  const handleStartEdit = (asset: typeof filteredAssets[0]) => {
+    setEditingAsset({
+      id: asset.id,
+      imageUrl: asset.imageUrl,
+      title: asset.title || "",
+      description: asset.description || "",
+      tags: asset.tags || "",
+      categoryId: asset.categoryId ? String(asset.categoryId) : "none",
+    });
+  };
+
+  const handleEditSubmit = () => {
+    if (!editingAsset) return;
+    const categoryIdNum = editingAsset.categoryId && editingAsset.categoryId !== "none" ? Number(editingAsset.categoryId) : null;
+    updateMutation.mutate({
+      id: editingAsset.id,
+      data: {
+        imageUrl: editingAsset.imageUrl,
+        title: editingAsset.title || null,
+        description: editingAsset.description || null,
+        tags: editingAsset.tags || null,
+        categoryId: categoryIdNum,
+      }
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+        setEditingAsset(null);
+        toast({ title: "Brand asset updated" });
+      },
+      onError: () => {
+        toast({ title: "Failed to update asset", variant: "destructive" });
       }
     });
   };
@@ -159,8 +197,11 @@ export default function BrandAssets() {
                 <Card className="rounded-2xl border-border/50 overflow-hidden group">
                   <div className="aspect-video relative bg-secondary overflow-hidden">
                     <img src={asset.imageUrl} alt={asset.title || "Brand asset"} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button variant="destructive" size="icon" onClick={() => handleDelete(asset.id)} className="rounded-full w-10 h-10 shadow-lg scale-0 group-hover:scale-100 transition-transform delay-75">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Button variant="secondary" size="icon" onClick={() => handleStartEdit(asset)} className="rounded-full w-10 h-10 shadow-lg scale-0 group-hover:scale-100 transition-transform delay-75">
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="destructive" size="icon" onClick={() => handleDelete(asset.id)} className="rounded-full w-10 h-10 shadow-lg scale-0 group-hover:scale-100 transition-transform delay-100">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -252,6 +293,59 @@ export default function BrandAssets() {
                   </div>
                 </form>
               </Form>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
+
+        <DialogPrimitive.Root open={!!editingAsset} onOpenChange={(open) => { if (!open) setEditingAsset(null); }}>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+            <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:rounded-2xl">
+              {editingAsset && (
+                <div className="space-y-4">
+                  <DialogPrimitive.Title className="text-xl font-display font-bold">Edit Brand Image</DialogPrimitive.Title>
+                  <div className="space-y-4 py-4">
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">Image URL</label>
+                      <Input value={editingAsset.imageUrl} onChange={(e) => setEditingAsset({...editingAsset, imageUrl: e.target.value})} className="rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">Title</label>
+                      <Input value={editingAsset.title} onChange={(e) => setEditingAsset({...editingAsset, title: e.target.value})} className="rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">Description</label>
+                      <Input value={editingAsset.description} onChange={(e) => setEditingAsset({...editingAsset, description: e.target.value})} className="rounded-xl" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1.5 block">Tags (comma separated)</label>
+                      <Input value={editingAsset.tags} onChange={(e) => setEditingAsset({...editingAsset, tags: e.target.value})} className="rounded-xl" />
+                    </div>
+                    {brandCategories && brandCategories.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium mb-1.5 block">Category</label>
+                        <Select value={editingAsset.categoryId} onValueChange={(val) => setEditingAsset({...editingAsset, categoryId: val})}>
+                          <SelectTrigger className="rounded-xl">
+                            <SelectValue placeholder="Select a category (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No category</SelectItem>
+                            {brandCategories.map(cat => (
+                              <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => setEditingAsset(null)} className="rounded-xl">Cancel</Button>
+                    <Button onClick={handleEditSubmit} disabled={updateMutation.isPending} className="rounded-xl bg-primary text-primary-foreground">
+                      {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Changes
+                    </Button>
+                  </div>
+                </div>
+              )}
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
