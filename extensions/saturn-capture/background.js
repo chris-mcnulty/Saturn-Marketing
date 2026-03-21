@@ -29,21 +29,30 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     });
 
     const pageData = results?.[0]?.result || {};
-    const item = {
+    await saveImageAsset({
       imageUrl: info.srcUrl,
       pageUrl: pageData.pageUrl || tab.url || "",
       title: pageData.pageTitle || tab.title || "",
       altText: pageData.altText || "",
       tags: "",
       capturedAt: new Date().toISOString(),
-    };
-
-    const { imageAssets = [] } = await chrome.storage.local.get("imageAssets");
-    imageAssets.push(item);
-    await chrome.storage.local.set({ imageAssets });
-
-    chrome.action.setBadgeText({ text: "+" });
-    chrome.action.setBadgeBackgroundColor({ color: "#810FFB" });
-    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 1500);
+    });
   }
 });
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "imageCaptured" && message.data) {
+    saveImageAsset(message.data).then(() => sendResponse({ ok: true }));
+    return true;
+  }
+});
+
+async function saveImageAsset(item) {
+  const { imageAssets = [] } = await chrome.storage.local.get("imageAssets");
+  imageAssets.push(item);
+  await chrome.storage.local.set({ imageAssets });
+
+  chrome.action.setBadgeText({ text: "+" });
+  chrome.action.setBadgeBackgroundColor({ color: "#810FFB" });
+  setTimeout(() => chrome.action.setBadgeText({ text: "" }), 1500);
+}

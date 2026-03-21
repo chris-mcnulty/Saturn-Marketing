@@ -22,12 +22,19 @@ function setupTabs() {
 
 function setupButtons() {
   document.getElementById("capture-content").addEventListener("click", captureContent);
+  document.getElementById("capture-image").addEventListener("click", captureImage);
   document.getElementById("export-content").addEventListener("click", () => exportCsv("content"));
   document.getElementById("clear-content").addEventListener("click", () => clearAll("content"));
   document.getElementById("export-images").addEventListener("click", () => exportCsv("images"));
   document.getElementById("clear-images").addEventListener("click", () => clearAll("images"));
   document.getElementById("edit-cancel").addEventListener("click", closeEdit);
   document.getElementById("edit-save").addEventListener("click", saveEdit);
+
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.imageAssets) {
+      loadLists();
+    }
+  });
 }
 
 async function captureContent() {
@@ -65,6 +72,18 @@ async function captureContent() {
   await chrome.storage.local.set({ contentAssets });
   loadLists();
   showFeedback("Page captured!");
+}
+
+async function captureImage() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { action: "startImagePicker" });
+    window.close();
+  } catch {
+    showFeedback("Cannot capture on this page.");
+  }
 }
 
 async function loadLists() {
