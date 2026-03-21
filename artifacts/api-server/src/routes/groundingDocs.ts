@@ -9,6 +9,55 @@ import {
   DeleteGroundingDocParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import multer from "multer";
+import mammoth from "mammoth";
+import { logger } from "../lib/logger";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+      "text/plain",
+      "text/markdown",
+    ];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type: ${file.mimetype}`));
+    }
+  },
+});
+
+async function extractTextFromFile(buffer: Buffer, mimetype: string, originalName: string): Promise<{ text: string; fileType: string }> {
+  if (mimetype === "application/pdf") {
+    const pdfParse = (await import("pdf-parse")).default;
+    const result = await pdfParse(buffer);
+    const text = result.text
+      .replace(/\r\n/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return { text, fileType: "pdf" };
+  }
+
+  if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || mimetype === "application/msword") {
+    const result = await mammoth.extractRawText({ buffer });
+    const text = result.value
+      .replace(/\r\n/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return { text, fileType: "docx" };
+  }
+
+  const text = buffer.toString("utf-8").trim();
+  const ext = originalName.toLowerCase().endsWith(".md") ? "markdown" : "text";
+  return { text, fileType: ext };
+}
 
 const router: IRouter = Router();
 
@@ -66,6 +115,45 @@ router.post("/grounding-docs", requireAuth, async (req, res): Promise<void> => {
   }).returning();
 
   res.status(201).json(doc);
+});
+
+router.post("/grounding-docs/upload", requireAuth, upload.single("file"), async (req, res): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "No file provided" });
+      return;
+    }
+
+    const name = (req.body.name as string) || req.file.originalname.replace(/\.[^.]+$/, "");
+    const description = (req.body.description as string) || null;
+    const category = (req.body.category as string) || "brand_voice";
+
+    const { text, fileType } = await extractTextFromFile(req.file.buffer, req.file.mimetype, req.file.originalname);
+
+    if (!text || text.length < 10) {
+      res.status(400).json({ error: "Could not extract meaningful text from the file. The file may be empty, image-only, or in an unsupported format." });
+      return;
+    }
+
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+
+    const [doc] = await db.insert(groundingDocumentsTable).values({
+      tenantId: req.tenantId!,
+      name,
+      description,
+      category,
+      fileType,
+      originalFileName: req.file.originalname,
+      extractedText: text,
+      wordCount,
+      isActive: true,
+    }).returning();
+
+    res.status(201).json(doc);
+  } catch (err: any) {
+    logger.error({ err }, "Grounding doc upload failed");
+    res.status(400).json({ error: err.message || "Failed to process uploaded file" });
+  }
 });
 
 router.patch("/grounding-docs/:id", requireAuth, async (req, res): Promise<void> => {

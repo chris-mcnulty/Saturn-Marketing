@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { AppLayout } from "@/components/layout";
 import {
   useListGroundingDocs,
@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, FileText, Trash2, BookOpen } from "lucide-react";
+import { Loader2, Plus, FileText, Trash2, BookOpen, Upload, FileUp, X } from "lucide-react";
 import { motion } from "framer-motion";
 
 const CATEGORIES = [
@@ -43,12 +43,18 @@ const createSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   category: z.enum(["brand_voice", "messaging_framework", "marketing_guidelines", "methodology"]),
-  content: z.string().min(1, "Content is required"),
+  content: z.string().optional(),
 });
+
+const ACCEPTED_FILE_TYPES = ".pdf,.docx,.doc,.txt,.md";
 
 export default function GroundingDocs() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [inputMode, setInputMode] = useState<"paste" | "upload">("upload");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -62,21 +68,76 @@ export default function GroundingDocs() {
     defaultValues: { name: "", description: "", category: "brand_voice", content: "" },
   });
 
-  const onSubmit = (data: z.infer<typeof createSchema>) => {
-    createMutation.mutate(
-      { data: { ...data } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListGroundingDocsQueryKey() });
-          setIsCreateOpen(false);
-          form.reset();
-          toast({ title: "Grounding document added" });
-        },
-        onError: () => {
-          toast({ title: "Failed to add document", variant: "destructive" });
-        },
+  const resetDialog = () => {
+    setIsCreateOpen(false);
+    setSelectedFile(null);
+    setInputMode("upload");
+    form.reset();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    if (!form.getValues("name")) {
+      form.setValue("name", file.name.replace(/\.[^.]+$/, ""));
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const onSubmit = async (data: z.infer<typeof createSchema>) => {
+    if (inputMode === "upload" && selectedFile) {
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("name", data.name);
+        if (data.description) formData.append("description", data.description);
+        formData.append("category", data.category);
+
+        const baseUrl = import.meta.env.BASE_URL || "/";
+        const resp = await fetch(`${baseUrl}api/grounding-docs/upload`, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: "Upload failed" }));
+          throw new Error(err.error || "Upload failed");
+        }
+
+        queryClient.invalidateQueries({ queryKey: getListGroundingDocsQueryKey() });
+        resetDialog();
+        toast({ title: "Document uploaded and processed" });
+      } catch (err: any) {
+        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      } finally {
+        setIsUploading(false);
       }
-    );
+    } else {
+      if (!data.content || data.content.trim().length === 0) {
+        form.setError("content", { message: "Content is required when pasting text" });
+        return;
+      }
+      createMutation.mutate(
+        { data: { ...data, content: data.content! } },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: getListGroundingDocsQueryKey() });
+            resetDialog();
+            toast({ title: "Grounding document added" });
+          },
+          onError: () => {
+            toast({ title: "Failed to add document", variant: "destructive" });
+          },
+        }
+      );
+    }
   };
 
   const handleToggleActive = (id: number, currentActive: boolean) => {
@@ -105,6 +166,14 @@ export default function GroundingDocs() {
 
   const getCategoryLabel = (value: string) => {
     return CATEGORIES.find((c) => c.value === value)?.label || value;
+  };
+
+  const fileTypeIcon = (ft: string | null) => {
+    if (ft === "pdf") return "PDF";
+    if (ft === "docx") return "DOCX";
+    if (ft === "markdown") return "MD";
+    if (ft === "text") return "TXT";
+    return ft?.toUpperCase() || "TXT";
   };
 
   return (
@@ -136,7 +205,7 @@ export default function GroundingDocs() {
             </div>
             <h3 className="text-xl font-semibold mb-2">No grounding documents yet</h3>
             <p className="text-muted-foreground mb-6 text-center max-w-md">
-              Add brand voice guidelines, messaging frameworks, or marketing methodology to help AI generate content that matches your brand.
+              Upload PDFs, Word documents, or paste text to give the AI your brand voice, messaging framework, or marketing guidelines.
             </p>
             <Button onClick={() => setIsCreateOpen(true)} className="rounded-xl">
               Add Document
@@ -174,6 +243,11 @@ export default function GroundingDocs() {
                     <Badge variant="secondary" className={`text-[10px] ${categoryColors[doc.category] || ""}`}>
                       {getCategoryLabel(doc.category)}
                     </Badge>
+                    {doc.fileType && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {fileTypeIcon(doc.fileType)}
+                      </Badge>
+                    )}
                     <span className="text-[10px] text-muted-foreground">
                       {doc.wordCount.toLocaleString()} words
                     </span>
@@ -211,7 +285,7 @@ export default function GroundingDocs() {
           </div>
         )}
 
-        <DialogPrimitive.Root open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogPrimitive.Root open={isCreateOpen} onOpenChange={(open) => !open ? resetDialog() : setIsCreateOpen(true)}>
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
             <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:rounded-2xl max-h-[90vh] overflow-y-auto">
@@ -220,6 +294,28 @@ export default function GroundingDocs() {
                   <DialogHeader>
                     <DialogTitle className="text-xl font-display">Add Grounding Document</DialogTitle>
                   </DialogHeader>
+
+                  <div className="flex gap-2 p-1 bg-secondary/50 rounded-xl">
+                    <button
+                      type="button"
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        inputMode === "upload" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => setInputMode("upload")}
+                    >
+                      <Upload className="w-4 h-4" /> Upload File
+                    </button>
+                    <button
+                      type="button"
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                        inputMode === "paste" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => setInputMode("paste")}
+                    >
+                      <FileText className="w-4 h-4" /> Paste Text
+                    </button>
+                  </div>
+
                   <div className="space-y-4 py-2">
                     <FormField
                       control={form.control}
@@ -270,35 +366,70 @@ export default function GroundingDocs() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="content"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Content</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Paste your brand voice guidelines, messaging framework, or marketing methodology here..."
-                              className="rounded-xl min-h-[160px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+
+                    {inputMode === "upload" ? (
+                      <div>
+                        <label className="text-sm font-medium">File</label>
+                        {!selectedFile ? (
+                          <div
+                            className="mt-2 border-2 border-dashed border-border/60 rounded-xl p-8 text-center cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <FileUp className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                            <p className="text-sm font-medium text-foreground">Click to upload or drag & drop</p>
+                            <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, TXT, or Markdown (max 20MB)</p>
+                          </div>
+                        ) : (
+                          <div className="mt-2 flex items-center gap-3 p-3 border rounded-xl bg-secondary/30">
+                            <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                              <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={removeFile} className="flex-shrink-0">
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept={ACCEPTED_FILE_TYPES}
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                      </div>
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Content</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Paste your brand voice guidelines, messaging framework, or marketing methodology here..."
+                                className="rounded-xl min-h-[200px] font-mono text-xs"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="rounded-xl">
+                    <Button type="button" variant="outline" onClick={resetDialog} className="rounded-xl">
                       Cancel
                     </Button>
                     <Button
                       type="submit"
-                      disabled={createMutation.isPending}
+                      disabled={createMutation.isPending || isUploading || (inputMode === "upload" && !selectedFile)}
                       className="rounded-xl bg-primary text-primary-foreground"
                     >
-                      {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      Save
+                      {(createMutation.isPending || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      {inputMode === "upload" ? "Upload & Process" : "Save"}
                     </Button>
                   </DialogFooter>
                 </form>
