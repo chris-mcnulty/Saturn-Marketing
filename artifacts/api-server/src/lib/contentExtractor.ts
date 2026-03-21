@@ -5,6 +5,43 @@ import * as cheerio from "cheerio";
 import { logger } from "./logger";
 import { getGroundingContext } from "./groundingContext";
 
+function sanitizeText(text: string): string {
+  let cleaned = text.replace(/<[^>]*>/g, "");
+  cleaned = cleaned.replace(/[^\P{Cc}\r\n]/gu, "");
+  cleaned = cleaned.replace(/\0/g, "");
+  return cleaned.trim();
+}
+
+function extractVisibleText($: cheerio.CheerioAPI): string {
+  $("script, style, noscript, iframe, svg, head").remove();
+
+  const selectors = ["article", "main", "[role='main']"];
+  for (const selector of selectors) {
+    const el = $(selector);
+    if (el.length) {
+      const text = el.text().replace(/[^\S\r\n]+/g, " ").trim();
+      if (text.length > 50) {
+        return text.slice(0, 2000);
+      }
+    }
+  }
+
+  const paragraphs: string[] = [];
+  $("p").each((_, el) => {
+    const text = $(el).text().trim();
+    if (text.length > 20) {
+      paragraphs.push(text);
+    }
+  });
+
+  if (paragraphs.length > 0) {
+    return paragraphs.join(" ").slice(0, 2000);
+  }
+
+  const bodyText = $("body").text().replace(/[^\S\r\n]+/g, " ").trim();
+  return bodyText.slice(0, 2000);
+}
+
 export async function extractContent(assetId: number): Promise<void> {
   const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, assetId));
   if (!asset) return;
@@ -46,18 +83,26 @@ export async function extractContent(assetId: number): Promise<void> {
       }
     }
 
-    const textContent = ogDescription || metaDescription || "";
+    const rawMetaText = ogDescription || metaDescription || "";
+    const sanitizedMetaText = sanitizeText(rawMetaText);
+    const hasMetaDescription = sanitizedMetaText.length > 0;
+    const textContent = hasMetaDescription ? sanitizedMetaText : sanitizeText(extractVisibleText($));
     let summaryText = textContent;
 
     if (textContent) {
       try {
         const groundingContext = await getGroundingContext(asset.tenantId);
-        const systemPromptParts = [
-          "You are a social media marketing expert. Generate a concise, engaging social media post caption (1-2 sentences) based on the following web page content. Make it compelling and shareable. Do not include hashtags.",
-        ];
+        const basePrompt = hasMetaDescription
+          ? "You are a social media marketing expert. Generate a concise, engaging social media post caption (1-2 sentences) based on the following web page content. Make it compelling and shareable. Do not include hashtags."
+          : "You are a social media marketing expert. Distill the following web page content into a concise, engaging social media post caption (1-2 sentences). Make it compelling and shareable. Do not include hashtags.";
+        const systemPromptParts = [basePrompt];
         if (groundingContext) {
           systemPromptParts.push(groundingContext);
         }
+
+        const userContent = hasMetaDescription
+          ? `Page title: ${title || "Unknown"}\nPage description: ${textContent}\nURL: ${asset.url}`
+          : `Page title: ${title || "Unknown"}\nPage content: ${textContent}\nURL: ${asset.url}`;
 
         const completion = await openai.chat.completions.create({
           model: "gpt-5-mini",
@@ -69,16 +114,18 @@ export async function extractContent(assetId: number): Promise<void> {
             },
             {
               role: "user",
-              content: `Page title: ${title || "Unknown"}\nPage description: ${textContent}\nURL: ${asset.url}`,
+              content: userContent,
             },
           ],
         });
         summaryText = completion.choices[0]?.message?.content || textContent;
       } catch (e) {
-        logger.warn({ err: e }, "AI summary generation failed, using page description");
+        logger.warn({ err: e }, "AI summary generation failed, using extracted text");
         summaryText = textContent;
       }
     }
+
+    summaryText = summaryText ? sanitizeText(summaryText) : "";
 
     await db.update(assetsTable).set({
       title: title,
