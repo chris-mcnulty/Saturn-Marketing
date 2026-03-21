@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sun, Moon } from "lucide-react";
-import { SynozurLogo, SynozurTextLogo } from "@/components/synozur-logo";
+import { SynozurLogo } from "@/components/synozur-logo";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion } from "framer-motion";
 import { useTheme } from "@/lib/theme-context";
@@ -61,7 +61,7 @@ export default function Register() {
         >
           <div className="flex items-center gap-3 mb-8">
             <SynozurLogo className="w-10 h-10" />
-            <SynozurTextLogo className="h-8" />
+            <span className="font-display font-bold text-3xl saturn-gradient-text">Saturn</span>
           </div>
 
           <h2 className="mt-8 text-3xl font-display font-bold tracking-tight text-foreground">

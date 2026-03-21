@@ -15,7 +15,7 @@ import {
   Monitor,
   BookOpen
 } from "lucide-react";
-import { SynozurLogo, SynozurTextLogo } from "@/components/synozur-logo";
+import { SynozurLogo } from "@/components/synozur-logo";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useLogout } from "@workspace/api-client-react";
@@ -71,7 +71,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar">
         <div className="p-6 flex items-center gap-3">
           <SynozurLogo className="w-8 h-8" />
-          <SynozurTextLogo className="h-6" />
+          <span className="font-display font-bold text-xl saturn-gradient-text">Saturn</span>
         </div>
 
         <nav className="flex-1 px-3 space-y-1 mt-4">
@@ -122,7 +122,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="md:hidden flex items-center justify-between p-4 border-b border-border/50 bg-background/80 backdrop-blur-lg sticky top-0 z-40">
           <div className="flex items-center gap-2">
             <SynozurLogo className="w-8 h-8" />
-            <SynozurTextLogo className="h-6" />
+            <span className="font-display font-bold text-xl saturn-gradient-text">Saturn</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
