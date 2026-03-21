@@ -7,6 +7,9 @@ import {
   useListCategories,
   useCreateCampaign,
   useAddCampaignAsset,
+  useListSocialAccounts,
+  useAddCampaignSocialAccount,
+  useGenerateCampaignPosts,
   getGetAssetQueryKey,
   getListAssetsQueryKey,
 } from "@workspace/api-client-react";
@@ -99,6 +102,9 @@ export default function AssetDetail() {
   const extractMutation = useExtractAssetContent();
   const createCampaignMut = useCreateCampaign();
   const addCampaignAssetMut = useAddCampaignAsset();
+  const { data: socialAccounts } = useListSocialAccounts();
+  const addAccountMut = useAddCampaignSocialAccount();
+  const generatePostsMut = useGenerateCampaignPosts();
 
   const handleInstantCampaign = async () => {
     if (!asset) return;
@@ -120,8 +126,21 @@ export default function AssetDetail() {
         id: newCampaign.id,
         data: { assetId: id },
       });
+      if (socialAccounts && socialAccounts.length > 0) {
+        for (const account of socialAccounts) {
+          try {
+            await addAccountMut.mutateAsync({
+              id: newCampaign.id,
+              data: { socialAccountId: account.id },
+            });
+          } catch { /* skip if linking fails */ }
+        }
+        generatePostsMut.mutate({ id: newCampaign.id });
+        toast({ title: "Campaign created & post generation started!" });
+      } else {
+        toast({ title: "Campaign created! Add social accounts to generate posts." });
+      }
       setIsInstantCampaignOpen(false);
-      toast({ title: "Campaign created! Add social accounts then generate posts." });
       setLocation(`/campaigns/${newCampaign.id}`);
     } catch {
       toast({ title: "Failed to create campaign", variant: "destructive" });
