@@ -256,6 +256,113 @@ function formatDateForSocialPilot(date: Date): string {
   return `${year}/${month}/${day} ${hours}:${mins}`;
 }
 
+function formatDateMMDDYYYY_HHMM(date: Date): string {
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const mins = date.getMinutes().toString().padStart(2, "0");
+  return `${month}/${day}/${year} ${hours}:${mins}`;
+}
+
+function formatDateISO_Local(date: Date): string {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  const hours = date.getHours().toString().padStart(2, "0");
+  const mins = date.getMinutes().toString().padStart(2, "0");
+  const secs = date.getSeconds().toString().padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${mins}:${secs}`;
+}
+
+function csvEscape(val: string): string {
+  return `"${(val || "").replace(/"/g, '""')}"`;
+}
+
+type CsvFormat = "socialpilot" | "hootsuite" | "sproutsocial" | "buffer";
+
+function formatPostsToCsv(posts: PostSlot[], format: CsvFormat): string {
+  const rows: string[] = [];
+
+  switch (format) {
+    case "hootsuite": {
+      rows.push(["Date", "Time", "Message", "Media URLs"].join(","));
+      for (const post of posts) {
+        const rawDate = parseSocialPilotDate(post.dateTime);
+        const datePart = rawDate ? formatDateMMDDYYYY_HHMM(rawDate).split(" ")[0] : post.dateTime.split(" ")[0] || "";
+        const timePart = rawDate
+          ? `${rawDate.getHours().toString().padStart(2, "0")}:${rawDate.getMinutes().toString().padStart(2, "0")}`
+          : post.dateTime.split(" ")[1] || "";
+        rows.push([
+          csvEscape(datePart),
+          csvEscape(timePart),
+          csvEscape(post.postContent),
+          csvEscape(post.imageUrls || ""),
+        ].join(","));
+      }
+      break;
+    }
+    case "sproutsocial": {
+      rows.push(["Text", "Image URL", "Publish Date", "Profile", "Tags"].join(","));
+      for (const post of posts) {
+        const rawDate = parseSocialPilotDate(post.dateTime);
+        rows.push([
+          csvEscape(post.postContent),
+          csvEscape(post.imageUrls || ""),
+          csvEscape(rawDate ? formatDateMMDDYYYY_HHMM(rawDate) : post.dateTime),
+          csvEscape(post.accountId),
+          csvEscape(post.tags?.replace(/;/g, ",") || ""),
+        ].join(","));
+      }
+      break;
+    }
+    case "buffer": {
+      rows.push(["Text", "Link", "Scheduled At", "Image URL"].join(","));
+      for (const post of posts) {
+        const rawDate = parseSocialPilotDate(post.dateTime);
+        const linkMatch = post.postContent.match(/https?:\/\/[^\s]+$/m);
+        const link = linkMatch ? linkMatch[0] : "";
+        rows.push([
+          csvEscape(post.postContent),
+          csvEscape(link),
+          csvEscape(rawDate ? formatDateISO_Local(rawDate) : post.dateTime),
+          csvEscape(post.imageUrls || ""),
+        ].join(","));
+      }
+      break;
+    }
+    case "socialpilot":
+    default: {
+      rows.push(["Post Content", "Image URL", "Date/Time", "Account ID", "First Comment", "Tags"].join(","));
+      for (const post of posts) {
+        rows.push([
+          csvEscape(post.postContent),
+          csvEscape(post.imageUrls || ""),
+          csvEscape(post.dateTime),
+          csvEscape(post.accountId),
+          csvEscape(post.firstComment || ""),
+          csvEscape(post.tags || ""),
+        ].join(","));
+      }
+      break;
+    }
+  }
+
+  return rows.join("\n");
+}
+
+function parseSocialPilotDate(dateStr: string): Date | null {
+  const match = dateStr.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  return new Date(
+    parseInt(match[1]),
+    parseInt(match[2]) - 1,
+    parseInt(match[3]),
+    parseInt(match[4]),
+    parseInt(match[5]),
+  );
+}
+
 router.post("/campaigns/:id/generate-posts", requireAuth, async (req, res): Promise<void> => {
   const params = GenerateCampaignPostsParams.safeParse(req.params);
   if (!params.success) {
@@ -278,28 +385,17 @@ router.post("/campaigns/:id/export-csv", requireAuth, async (req, res): Promise<
     return;
   }
 
+  const validFormats: CsvFormat[] = ["socialpilot", "hootsuite", "sproutsocial", "buffer"];
+  const format = (typeof req.query.format === "string" && validFormats.includes(req.query.format as CsvFormat))
+    ? req.query.format as CsvFormat
+    : "socialpilot";
+
   try {
     const posts = await generatePosts(params.data.id, req.tenantId!);
-
-    const headers = ["Post Content", "Image URL", "Date/Time", "Account ID", "First Comment", "Tags"];
-    const csvRows = [headers.join(",")];
-
-    for (const post of posts) {
-      const row = [
-        `"${(post.postContent || "").replace(/"/g, '""')}"`,
-        `"${post.imageUrls || ""}"`,
-        `"${post.dateTime}"`,
-        `"${post.accountId}"`,
-        `"${post.firstComment || ""}"`,
-        `"${post.tags || ""}"`,
-      ];
-      csvRows.push(row.join(","));
-    }
-
-    const csvContent = csvRows.join("\n");
+    const csvContent = formatPostsToCsv(posts, format);
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename="campaign_${params.data.id}_posts.csv"`);
+    res.setHeader("Content-Disposition", `attachment; filename="campaign_${params.data.id}_${format}.csv"`);
     res.send(csvContent);
   } catch (e: any) {
     res.status(400).json({ error: e.message });

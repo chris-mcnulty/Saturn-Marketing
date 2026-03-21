@@ -12,7 +12,6 @@ import {
   useAddCampaignSocialAccount,
   useRemoveCampaignSocialAccount,
   useGenerateCampaignPosts,
-  useExportCampaignCsv,
   getGetCampaignQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,7 +44,13 @@ export default function CampaignDetail() {
   const addAccountMut = useAddCampaignSocialAccount();
   const removeAccountMut = useRemoveCampaignSocialAccount();
   const generatePostsMut = useGenerateCampaignPosts();
-  const exportCsvMut = useExportCampaignCsv();
+
+  const exportFormats = [
+    { value: "socialpilot", label: "SocialPilot" },
+    { value: "hootsuite", label: "Hootsuite" },
+    { value: "sproutsocial", label: "Sprout Social" },
+    { value: "buffer", label: "Buffer" },
+  ] as const;
 
   // State
   const [activeTab, setActiveTab] = useState("assets");
@@ -53,6 +58,7 @@ export default function CampaignDetail() {
   const [assetCategoryFilter, setAssetCategoryFilter] = useState<string>("");
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
+  const [exportFormat, setExportFormat] = useState<string>("socialpilot");
 
   const handleStatusChange = (newStatus: "draft" | "scheduled" | "active" | "paused" | "completed") => {
     updateCampaignMut.mutate({ id, data: { status: newStatus } }, {
@@ -98,24 +104,37 @@ export default function CampaignDetail() {
     });
   };
 
-  const handleExport = () => {
-    exportCsvMut.mutate({ id }, {
-      onSuccess: (csvData) => {
-        const blob = new Blob([csvData], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `campaign-${id}-export.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        toast({ title: "CSV Downloaded" });
-      },
-      onError: (err: any) => {
-        toast({ title: "Export failed", description: err.data?.error || err.message || "An unexpected error occurred", variant: "destructive" });
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const baseUrl = import.meta.env.BASE_URL || "/";
+      const response = await fetch(`${baseUrl}api/campaigns/${id}/export-csv?format=${exportFormat}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.error || `Export failed (${response.status})`);
       }
-    });
+      const csvData = await response.text();
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const formatLabel = exportFormats.find(f => f.value === exportFormat)?.label || exportFormat;
+      a.download = `campaign-${id}-${exportFormat}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast({ title: `${formatLabel} CSV Downloaded` });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err.message || "An unexpected error occurred", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading || !campaign) return (
@@ -258,9 +277,20 @@ export default function CampaignDetail() {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Post Previews</h3>
                 {generatedPosts.length > 0 && (
-                  <Button onClick={handleExport} disabled={exportCsvMut.isPending} className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
-                    {exportCsvMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Export CSV
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={exportFormat}
+                      onChange={(e) => setExportFormat(e.target.value)}
+                      className="h-10 px-3 rounded-xl border border-input bg-background text-sm font-medium"
+                    >
+                      {exportFormats.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                    <Button onClick={handleExport} disabled={isExporting} className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
+                      {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Export CSV
+                    </Button>
+                  </div>
                 )}
               </div>
               

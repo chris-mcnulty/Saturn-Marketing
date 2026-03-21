@@ -140,7 +140,7 @@ export default function Login() {
               Saturn
             </h2>
             <p className="text-lg text-white/80 max-w-md drop-shadow-md">
-              Generate AI-powered social media content at scale. Manage campaigns. Export to SocialPilot.
+              Generate AI-powered social media content at scale. Manage campaigns. Export to SocialPilot, Hootsuite, Sprout Social &amp; Buffer.
             </p>
           </motion.div>
         </div>
