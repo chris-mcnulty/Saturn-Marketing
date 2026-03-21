@@ -13,7 +13,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  BookOpen
+  BookOpen,
+  Mail
 } from "lucide-react";
 import { SynozurLogo } from "@/components/synozur-logo";
 import { useAuth } from "@/lib/auth-context";
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/brand-assets", label: "Brand Assets", icon: ImageIcon },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/grounding-docs", label: "Grounding Docs", icon: BookOpen },
+  { href: "/email-generator", label: "Email Generator", icon: Mail },
   { href: "/social-accounts", label: "Social Accounts", icon: Share2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

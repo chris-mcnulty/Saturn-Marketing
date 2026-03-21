@@ -35,6 +35,8 @@ import type {
   CreateSocialAccountBody,
   ErrorResponse,
   GenerateCampaignPosts202,
+  GenerateEmailBody,
+  GenerateEmailResponse,
   GeneratedPost,
   GetGeneratePostsStatus200,
   GetGeneratePostsStatusParams,
@@ -4500,4 +4502,90 @@ export const useRemoveTenantUser = <
   TContext
 > => {
   return useMutation(getRemoveTenantUserMutationOptions(options));
+};
+
+/**
+ * @summary Generate a promotional email for selected assets
+ */
+export const getGeneratePromotionalEmailUrl = () => {
+  return `/api/email/generate`;
+};
+
+export const generatePromotionalEmail = async (
+  generateEmailBody: GenerateEmailBody,
+  options?: RequestInit,
+): Promise<GenerateEmailResponse> => {
+  return customFetch<GenerateEmailResponse>(getGeneratePromotionalEmailUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateEmailBody),
+  });
+};
+
+export const getGeneratePromotionalEmailMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generatePromotionalEmail>>,
+    TError,
+    { data: BodyType<GenerateEmailBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generatePromotionalEmail>>,
+  TError,
+  { data: BodyType<GenerateEmailBody> },
+  TContext
+> => {
+  const mutationKey = ["generatePromotionalEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generatePromotionalEmail>>,
+    { data: BodyType<GenerateEmailBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generatePromotionalEmail(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GeneratePromotionalEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generatePromotionalEmail>>
+>;
+export type GeneratePromotionalEmailMutationBody = BodyType<GenerateEmailBody>;
+export type GeneratePromotionalEmailMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate a promotional email for selected assets
+ */
+export const useGeneratePromotionalEmail = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generatePromotionalEmail>>,
+    TError,
+    { data: BodyType<GenerateEmailBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generatePromotionalEmail>>,
+  TError,
+  { data: BodyType<GenerateEmailBody> },
+  TContext
+> => {
+  return useMutation(getGeneratePromotionalEmailMutationOptions(options));
 };

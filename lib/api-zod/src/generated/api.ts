@@ -987,3 +987,28 @@ export const UpdateTenantUserResponse = zod.object({
 export const RemoveTenantUserParams = zod.object({
   id: zod.coerce.number(),
 });
+
+/**
+ * @summary Generate a promotional email for selected assets
+ */
+
+export const GeneratePromotionalEmailBody = zod.object({
+  assetIds: zod.array(zod.number()).min(1),
+  platform: zod.enum([
+    "outlook",
+    "hubspot_marketing",
+    "hubspot_1to1",
+    "dynamics_customer",
+  ]),
+  tone: zod.enum(["professional", "friendly", "urgent"]).optional(),
+  callToAction: zod.string().optional(),
+  recipientContext: zod.string().optional(),
+});
+
+export const GeneratePromotionalEmailResponse = zod.object({
+  emailBody: zod.string(),
+  subjectLineSuggestions: zod.array(zod.string()),
+  coachingTips: zod.array(zod.string()),
+  platform: zod.string(),
+  assetTitles: zod.array(zod.string()),
+});

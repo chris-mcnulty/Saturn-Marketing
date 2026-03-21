@@ -30,6 +30,8 @@ tags:
     description: CSV generation operations
   - name: groundingDocs
     description: AI grounding document operations
+  - name: emailGenerator
+    description: Promotional email generation operations
 
 paths:
   /healthz:
@@ -1045,6 +1047,31 @@ paths:
         "204":
           description: User removed
 
+  /email/generate:
+    post:
+      operationId: generatePromotionalEmail
+      tags: [emailGenerator]
+      summary: Generate a promotional email for selected assets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateEmailBody"
+      responses:
+        "200":
+          description: Generated email content with coaching tips
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateEmailResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -1787,3 +1814,51 @@ components:
         - skipped
         - failed
         - errors
+
+    GenerateEmailBody:
+      type: object
+      properties:
+        assetIds:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+        platform:
+          type: string
+          enum: [outlook, hubspot_marketing, hubspot_1to1, dynamics_customer]
+        tone:
+          type: string
+          enum: [professional, friendly, urgent]
+        callToAction:
+          type: string
+        recipientContext:
+          type: string
+      required:
+        - assetIds
+        - platform
+
+    GenerateEmailResponse:
+      type: object
+      properties:
+        emailBody:
+          type: string
+        subjectLineSuggestions:
+          type: array
+          items:
+            type: string
+        coachingTips:
+          type: array
+          items:
+            type: string
+        platform:
+          type: string
+        assetTitles:
+          type: array
+          items:
+            type: string
+      required:
+        - emailBody
+        - subjectLineSuggestions
+        - coachingTips
+        - platform
+        - assetTitles

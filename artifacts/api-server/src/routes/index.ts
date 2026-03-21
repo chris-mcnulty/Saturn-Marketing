@@ -10,6 +10,7 @@ import tenantRouter from "./tenant";
 import csvRouter from "./csv";
 import adminRouter from "./admin";
 import groundingDocsRouter from "./groundingDocs";
+import emailGeneratorRouter from "./emailGenerator";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(tenantRouter);
 router.use(csvRouter);
 router.use(adminRouter);
 router.use(groundingDocsRouter);
+router.use(emailGeneratorRouter);
 
 export default router;

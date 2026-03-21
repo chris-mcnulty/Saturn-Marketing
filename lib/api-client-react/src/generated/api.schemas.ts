@@ -469,6 +469,42 @@ export interface ImportResultSummary {
   errors: string[];
 }
 
+export type GenerateEmailBodyPlatform =
+  (typeof GenerateEmailBodyPlatform)[keyof typeof GenerateEmailBodyPlatform];
+
+export const GenerateEmailBodyPlatform = {
+  outlook: "outlook",
+  hubspot_marketing: "hubspot_marketing",
+  hubspot_1to1: "hubspot_1to1",
+  dynamics_customer: "dynamics_customer",
+} as const;
+
+export type GenerateEmailBodyTone =
+  (typeof GenerateEmailBodyTone)[keyof typeof GenerateEmailBodyTone];
+
+export const GenerateEmailBodyTone = {
+  professional: "professional",
+  friendly: "friendly",
+  urgent: "urgent",
+} as const;
+
+export interface GenerateEmailBody {
+  /** @minItems 1 */
+  assetIds: number[];
+  platform: GenerateEmailBodyPlatform;
+  tone?: GenerateEmailBodyTone;
+  callToAction?: string;
+  recipientContext?: string;
+}
+
+export interface GenerateEmailResponse {
+  emailBody: string;
+  subjectLineSuggestions: string[];
+  coachingTips: string[];
+  platform: string;
+  assetTitles: string[];
+}
+
 export type ListAssetsParams = {
   categoryId?: number;
   isActive?: boolean;

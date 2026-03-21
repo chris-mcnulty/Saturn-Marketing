@@ -40,6 +40,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Multi-Platform CSV Export**: Generate bulk posts with AI-powered variation. Supports SocialPilot, Hootsuite, Sprout Social, and Buffer formats. Max 500 posts per export. AI calls (hashtag generation + 3 text variations per asset) are pre-generated in parallel with bounded concurrency (5 concurrent asset batches) to avoid timeouts on large campaigns. Generated posts are persisted to the `generated_posts` table so they survive page refreshes and can be re-exported without regeneration.
 - **Social Account Management**: Configure social media accounts with SocialPilot account IDs.
 - **AI Grounding Documents**: Upload files (PDF, DOCX, TXT, Markdown) or paste text for brand voice guidelines, messaging frameworks, marketing guidelines, and methodology docs. Files are extracted to text server-side using pdf-parse and mammoth. Tenant-scoped, active/inactive toggle. Active docs are automatically injected into AI prompts for content extraction and post variation generation.
+- **Promotional Email Generator**: AI-powered email generation for content assets. Select one or more assets, choose target platform (Outlook, HubSpot Marketing, HubSpot 1:1, Dynamics 365), set optional tone/CTA/recipient context. Generates platform-tailored email body with subject line suggestions and coaching tips. Copy-to-clipboard support. Previous generations preserved for comparison.
 - **Settings**: Manage organization profile, content categories, and team members.
 
 ## Structure
