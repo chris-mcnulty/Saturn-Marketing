@@ -43,7 +43,7 @@ export default function Dashboard() {
             <div className="flex gap-4">
               <Link 
                 href="/campaigns" 
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl synozur-gradient text-white font-medium shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-xl saturn-gradient text-white font-medium shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all"
               >
                 View Campaigns
               </Link>

@@ -67,11 +67,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex">
       <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl synozur-gradient flex items-center justify-center shadow-lg">
+          <div className="w-8 h-8 rounded-xl saturn-gradient flex items-center justify-center shadow-lg">
             <Megaphone className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display font-bold text-xl synozur-gradient-text">
-            Synozur
+          <span className="font-display font-bold text-xl saturn-gradient-text">
+            Saturn
           </span>
         </div>
 
@@ -122,10 +122,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-border/50 bg-background/80 backdrop-blur-lg sticky top-0 z-40">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl synozur-gradient flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl saturn-gradient flex items-center justify-center">
               <Megaphone className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display font-bold text-xl synozur-gradient-text">Synozur</span>
+            <span className="font-display font-bold text-xl saturn-gradient-text">Saturn</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -149,7 +149,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 className="fixed inset-y-0 left-0 w-3/4 max-w-xs bg-sidebar border-r border-sidebar-border z-50 flex flex-col md:hidden shadow-2xl"
               >
                 <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
-                  <span className="font-display font-bold text-xl synozur-gradient-text">Menu</span>
+                  <span className="font-display font-bold text-xl saturn-gradient-text">Menu</span>
                   <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
                     <X className="w-5 h-5" />
                   </Button>

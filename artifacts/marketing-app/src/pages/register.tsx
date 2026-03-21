@@ -59,10 +59,10 @@ export default function Register() {
           className="mx-auto w-full max-w-sm lg:w-96"
         >
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl synozur-gradient flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl saturn-gradient flex items-center justify-center shadow-lg">
               <Megaphone className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display font-bold text-2xl tracking-tight synozur-gradient-text">Synozur</span>
+            <span className="font-display font-bold text-2xl tracking-tight saturn-gradient-text">Saturn</span>
           </div>
 
           <h2 className="mt-8 text-3xl font-display font-bold tracking-tight text-foreground">
@@ -133,7 +133,7 @@ export default function Register() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 mt-2 rounded-xl synozur-gradient text-white text-base font-semibold shadow-lg transition-all hover:opacity-90"
+                  className="w-full h-12 mt-2 rounded-xl saturn-gradient text-white text-base font-semibold shadow-lg transition-all hover:opacity-90"
                   disabled={registerMutation.isPending}
                 >
                   {registerMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign up"}
@@ -150,7 +150,13 @@ export default function Register() {
           </div>
         </motion.div>
       </div>
-      <div className="hidden lg:block relative w-0 flex-1 aurora-bg">
+      <div className="hidden lg:block relative w-0 flex-1 overflow-hidden">
+        <img
+          className="absolute inset-0 h-full w-full object-cover"
+          src={`${import.meta.env.BASE_URL}images/saturn-bg.jpg`}
+          alt="Saturn rings in space"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent" />
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }} 
@@ -158,13 +164,13 @@ export default function Register() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="text-center px-12"
           >
-            <div className="w-20 h-20 rounded-2xl synozur-gradient flex items-center justify-center shadow-2xl mx-auto mb-8">
+            <div className="w-20 h-20 rounded-2xl saturn-gradient flex items-center justify-center shadow-2xl mx-auto mb-8 backdrop-blur-sm bg-opacity-90">
               <Megaphone className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-4xl font-display font-bold synozur-gradient-text mb-4">
+            <h2 className="text-4xl font-display font-bold text-white mb-4 drop-shadow-lg">
               Marketing Command Center
             </h2>
-            <p className="text-lg text-muted-foreground max-w-md">
+            <p className="text-lg text-white/80 max-w-md drop-shadow-md">
               Generate AI-powered social media content at scale. Manage campaigns. Export to SocialPilot.
             </p>
           </motion.div>

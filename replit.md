@@ -2,12 +2,13 @@
 
 ## Overview
 
-Multi-tenant marketing SaaS application (Synozur) for generating and managing social media posts across multiple organizations. Built as a pnpm workspace monorepo using TypeScript.
+Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for generating and managing social media posts across multiple organizations. Built as a pnpm workspace monorepo using TypeScript.
 
 ## Synozur Platform Ecosystem
 
 - **Constellation**: Project delivery platform. Codebase: https://github.com/chris-mcnulty/synozur-scdp
 - **Orbit**: Marketing analytics app. Codebase: https://github.com/chris-mcnulty/synozur-orbit
+- **Saturn**: Marketing content management & SocialPilot export app (this project)
 
 ## Stack
 

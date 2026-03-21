@@ -20,7 +20,7 @@ function getSystemTheme(): "light" | "dark" {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("synozur-theme");
+      const stored = localStorage.getItem("saturn-theme");
       if (stored === "light" || stored === "dark" || stored === "system") return stored;
     }
     return "light";
@@ -32,7 +32,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(resolvedTheme);
-    localStorage.setItem("synozur-theme", theme);
+    localStorage.setItem("saturn-theme", theme);
   }, [theme, resolvedTheme]);
 
   useEffect(() => {
