@@ -22,7 +22,8 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 - **Frontend**: React + Vite + TailwindCSS + Wouter + TanStack React Query
-- **AI**: OpenAI via Replit AI Integrations (gpt-4o-mini for content extraction and post variations)
+- **AI (text)**: Anthropic Claude Sonnet 4-6 via Replit AI Integrations (content extraction and post variations)
+- **AI (image/audio)**: OpenAI via Replit AI Integrations (image generation, audio)
 - **Auth**: Session-based (express-session + bcryptjs), no JWT. Entra SSO support (planned).
 
 ## Core Features
@@ -53,7 +54,8 @@ artifacts-monorepo/
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   ├── db/                 # Drizzle ORM schema + DB connection
-│   └── integrations-openai-ai-server/  # OpenAI AI integration
+│   ├── integrations-anthropic-ai/      # Anthropic AI integration (text generation)
+│   └── integrations-openai-ai-server/  # OpenAI AI integration (image/audio)
 ├── scripts/
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
@@ -87,9 +89,9 @@ Express 5 API server with session-based auth, multi-tenant data isolation, AI co
 - Admin routes: `src/routes/admin.ts` — service plans CRUD, domain blocklist, tenant management, user management, tenant invites, consultant access
 - Middleware: `src/middlewares/auth.ts` — `requireAuth`, `requireAdmin` (Domain Admin+), `requireGlobalAdmin`
 - Services: `src/services/plan-policy.ts` — feature registry, plan limits, DB-cached plan features with TTL
-- Content Extractor: `src/lib/contentExtractor.ts` — cheerio + OpenAI for URL metadata extraction (uses grounding context)
+- Content Extractor: `src/lib/contentExtractor.ts` — cheerio + Anthropic Claude for URL metadata extraction (uses grounding context)
 - Grounding Context: `src/lib/groundingContext.ts` — fetches active grounding docs for a tenant and formats them for AI prompt injection
-- Depends on: `@workspace/db`, `@workspace/api-zod`, `@workspace/integrations-openai-ai-server`
+- Depends on: `@workspace/db`, `@workspace/api-zod`, `@workspace/integrations-anthropic-ai`, `@workspace/integrations-openai-ai-server`
 
 ### `artifacts/marketing-app` (`@workspace/marketing-app`)
 
@@ -146,6 +148,8 @@ Utility scripts package. Run via `pnpm --filter @workspace/scripts run <script>`
 - `SESSION_SECRET` — Secret for express-session (has fallback default)
 - `AI_INTEGRATIONS_OPENAI_BASE_URL` — Auto-set by Replit AI Integrations
 - `AI_INTEGRATIONS_OPENAI_API_KEY` — Auto-set by Replit AI Integrations
+- `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` — Auto-set by Replit AI Integrations
+- `AI_INTEGRATIONS_ANTHROPIC_API_KEY` — Auto-set by Replit AI Integrations
 - `ENTRA_CLIENT_ID` — (Optional) Azure AD App Registration Client ID for Entra SSO
 - `ENTRA_TENANT_ID` — (Optional) Azure AD Tenant ID for Entra SSO
 - `ENTRA_CLIENT_SECRET` — (Optional) Azure AD Client Secret for Entra SSO

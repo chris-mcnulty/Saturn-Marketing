@@ -6,7 +6,7 @@ import {
   ExportCampaignCsvParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getGroundingContext } from "../lib/groundingContext";
 
 const router: IRouter = Router();
@@ -31,21 +31,19 @@ async function generateVariation(originalText: string, groundingContext: string)
       systemPromptParts.push(groundingContext);
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_tokens: 200,
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      system: systemPromptParts.join("\n\n"),
       messages: [
-        {
-          role: "system",
-          content: systemPromptParts.join("\n\n"),
-        },
         {
           role: "user",
           content: originalText,
         },
       ],
     });
-    return completion.choices[0]?.message?.content || originalText;
+    const block = message.content[0];
+    return (block.type === "text" ? block.text : null) || originalText;
   } catch {
     return originalText;
   }

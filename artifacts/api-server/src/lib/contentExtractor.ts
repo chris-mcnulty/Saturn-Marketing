@@ -1,6 +1,6 @@
 import { db, assetsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import * as cheerio from "cheerio";
 import { logger } from "./logger";
 import { getGroundingContext } from "./groundingContext";
@@ -104,21 +104,19 @@ export async function extractContent(assetId: number): Promise<void> {
           ? `Page title: ${title || "Unknown"}\nPage description: ${textContent}\nURL: ${asset.url}`
           : `Page title: ${title || "Unknown"}\nPage content: ${textContent}\nURL: ${asset.url}`;
 
-        const completion = await openai.chat.completions.create({
-          model: "gpt-5-mini",
-          max_completion_tokens: 200,
+        const message = await anthropic.messages.create({
+          model: "claude-sonnet-4-6",
+          max_tokens: 8192,
+          system: systemPromptParts.join("\n\n"),
           messages: [
-            {
-              role: "system",
-              content: systemPromptParts.join("\n\n"),
-            },
             {
               role: "user",
               content: userContent,
             },
           ],
         });
-        summaryText = completion.choices[0]?.message?.content || textContent;
+        const block = message.content[0];
+        summaryText = (block.type === "text" ? block.text : null) || textContent;
       } catch (e) {
         logger.warn({ err: e }, "AI summary generation failed, using extracted text");
         summaryText = textContent;
