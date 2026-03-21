@@ -2,16 +2,21 @@ import { db, groundingDocumentsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 
 export async function getGroundingContext(tenantId: number): Promise<string> {
-  const docs = await db.select({
-    name: groundingDocumentsTable.name,
-    category: groundingDocumentsTable.category,
-    extractedText: groundingDocumentsTable.extractedText,
-  })
-    .from(groundingDocumentsTable)
-    .where(and(
-      eq(groundingDocumentsTable.tenantId, tenantId),
-      eq(groundingDocumentsTable.isActive, true)
-    ));
+  let docs;
+  try {
+    docs = await db.select({
+      name: groundingDocumentsTable.name,
+      category: groundingDocumentsTable.category,
+      extractedText: groundingDocumentsTable.extractedText,
+    })
+      .from(groundingDocumentsTable)
+      .where(and(
+        eq(groundingDocumentsTable.tenantId, tenantId),
+        eq(groundingDocumentsTable.isActive, true)
+      ));
+  } catch {
+    return "";
+  }
 
   if (docs.length === 0) return "";
 
