@@ -53,17 +53,14 @@ export default function BrandAssets() {
   }, [assets, filterCategoryId]);
 
   const onSubmit = (data: z.infer<typeof createSchema>) => {
-    const payload: any = {
+    const categoryIdNum = data.categoryId && data.categoryId !== "none" ? Number(data.categoryId) : undefined;
+    createMutation.mutate({ data: {
       imageUrl: data.imageUrl,
       title: data.title,
       description: data.description || undefined,
       tags: data.tags || undefined,
-    };
-    if (data.categoryId && data.categoryId !== "none") {
-      payload.categoryId = Number(data.categoryId);
-    }
-
-    createMutation.mutate({ data: payload }, {
+      ...(categoryIdNum ? { categoryId: categoryIdNum } : {}),
+    } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
         setIsCreateOpen(false);

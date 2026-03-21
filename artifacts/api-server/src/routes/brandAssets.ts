@@ -24,7 +24,7 @@ router.get("/brand-assets", requireAuth, async (req, res): Promise<void> => {
     createdAt: brandAssetsTable.createdAt,
   })
     .from(brandAssetsTable)
-    .leftJoin(brandAssetCategoriesTable, eq(brandAssetsTable.categoryId, brandAssetCategoriesTable.id))
+    .leftJoin(brandAssetCategoriesTable, and(eq(brandAssetsTable.categoryId, brandAssetCategoriesTable.id), eq(brandAssetCategoriesTable.tenantId, req.tenantId!)))
     .where(eq(brandAssetsTable.tenantId, req.tenantId!))
     .orderBy(brandAssetsTable.createdAt);
   res.json(rows);
@@ -35,6 +35,16 @@ router.post("/brand-assets", requireAuth, async (req, res): Promise<void> => {
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
+  }
+
+  if (parsed.data.categoryId) {
+    const [cat] = await db.select({ id: brandAssetCategoriesTable.id })
+      .from(brandAssetCategoriesTable)
+      .where(and(eq(brandAssetCategoriesTable.id, parsed.data.categoryId), eq(brandAssetCategoriesTable.tenantId, req.tenantId!)));
+    if (!cat) {
+      res.status(400).json({ error: "Invalid category" });
+      return;
+    }
   }
 
   const [asset] = await db.insert(brandAssetsTable).values({
@@ -67,6 +77,16 @@ router.patch("/brand-assets/:id", requireAuth, async (req, res): Promise<void> =
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
+  }
+
+  if (parsed.data.categoryId) {
+    const [cat] = await db.select({ id: brandAssetCategoriesTable.id })
+      .from(brandAssetCategoriesTable)
+      .where(and(eq(brandAssetCategoriesTable.id, parsed.data.categoryId), eq(brandAssetCategoriesTable.tenantId, req.tenantId!)));
+    if (!cat) {
+      res.status(400).json({ error: "Invalid category" });
+      return;
+    }
   }
 
   const [asset] = await db.update(brandAssetsTable)

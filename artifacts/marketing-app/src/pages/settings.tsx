@@ -8,6 +8,7 @@ import {
   useDeleteCategory,
   useListBrandAssetCategories,
   useCreateBrandAssetCategory,
+  useUpdateBrandAssetCategory,
   useDeleteBrandAssetCategory,
   getListCategoriesQueryKey,
   getListBrandAssetCategoriesQueryKey,
@@ -19,7 +20,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Pencil, Check, X } from "lucide-react";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -34,11 +35,14 @@ export default function Settings() {
   const createCategoryMut = useCreateCategory();
   const deleteCategoryMut = useDeleteCategory();
   const createBrandCatMut = useCreateBrandAssetCategory();
+  const updateBrandCatMut = useUpdateBrandAssetCategory();
   const deleteBrandCatMut = useDeleteBrandAssetCategory();
 
   const [tenantName, setTenantName] = useState(tenant?.name || "");
   const [newCatName, setNewCatName] = useState("");
   const [newBrandCatName, setNewBrandCatName] = useState("");
+  const [editingBrandCatId, setEditingBrandCatId] = useState<number | null>(null);
+  const [editingBrandCatName, setEditingBrandCatName] = useState("");
 
   const handleUpdateTenant = () => {
     updateTenantMut.mutate({ data: { name: tenantName } }, {
@@ -65,6 +69,17 @@ export default function Settings() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() });
         setNewBrandCatName("");
+      }
+    });
+  };
+
+  const handleRenameBrandCat = (id: number) => {
+    if(!editingBrandCatName.trim()) return;
+    updateBrandCatMut.mutate({ id, data: { name: editingBrandCatName.trim() } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() });
+        setEditingBrandCatId(null);
+        setEditingBrandCatName("");
       }
     });
   };
@@ -154,14 +169,40 @@ export default function Settings() {
             <div className="flex flex-wrap gap-2">
               {brandAssetCategories?.map(cat => (
                 <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-lg text-sm font-medium">
-                  {cat.name}
-                  <button onClick={() => {
-                    deleteBrandCatMut.mutate({ id: cat.id }, {
-                      onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() })
-                    })
-                  }} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {editingBrandCatId === cat.id ? (
+                    <>
+                      <Input
+                        value={editingBrandCatName}
+                        onChange={(e) => setEditingBrandCatName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameBrandCat(cat.id);
+                          if (e.key === "Escape") { setEditingBrandCatId(null); setEditingBrandCatName(""); }
+                        }}
+                        className="h-6 w-28 text-sm rounded px-1"
+                        autoFocus
+                      />
+                      <button onClick={() => handleRenameBrandCat(cat.id)} className="text-muted-foreground hover:text-primary">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setEditingBrandCatId(null); setEditingBrandCatName(""); }} className="text-muted-foreground hover:text-destructive">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {cat.name}
+                      <button onClick={() => { setEditingBrandCatId(cat.id); setEditingBrandCatName(cat.name); }} className="text-muted-foreground hover:text-primary">
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => {
+                        deleteBrandCatMut.mutate({ id: cat.id }, {
+                          onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() })
+                        })
+                      }} className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
