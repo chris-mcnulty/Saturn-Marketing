@@ -14,4 +14,6 @@ export interface UpdateBrandAssetBody {
   description?: string | null;
   /** @nullable */
   tags?: string | null;
+  /** @nullable */
+  categoryId?: number | null;
 }

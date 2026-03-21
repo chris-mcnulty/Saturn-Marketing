@@ -152,6 +152,21 @@ export interface UpdateAssetBody {
   suggestedImageUrl?: string | null;
 }
 
+export interface BrandAssetCategory {
+  id: number;
+  tenantId: number;
+  name: string;
+  createdAt?: string;
+}
+
+export interface CreateBrandAssetCategoryBody {
+  name: string;
+}
+
+export interface UpdateBrandAssetCategoryBody {
+  name: string;
+}
+
 export interface BrandAsset {
   id: number;
   tenantId: number;
@@ -162,6 +177,10 @@ export interface BrandAsset {
   description?: string | null;
   /** @nullable */
   tags?: string | null;
+  /** @nullable */
+  categoryId?: number | null;
+  /** @nullable */
+  categoryName?: string | null;
   createdAt: string;
 }
 
@@ -170,6 +189,7 @@ export interface CreateBrandAssetBody {
   title?: string;
   description?: string;
   tags?: string;
+  categoryId?: number;
 }
 
 export interface UpdateBrandAssetBody {
@@ -180,6 +200,8 @@ export interface UpdateBrandAssetBody {
   description?: string | null;
   /** @nullable */
   tags?: string | null;
+  /** @nullable */
+  categoryId?: number | null;
 }
 
 export type CampaignStatus =

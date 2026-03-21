@@ -6,10 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateBrandAssetBody {
-  imageUrl: string;
-  title?: string;
-  description?: string;
-  tags?: string;
-  categoryId?: number;
+export interface BrandAssetCategory {
+  id: number;
+  tenantId: number;
+  name: string;
+  createdAt?: Date;
 }

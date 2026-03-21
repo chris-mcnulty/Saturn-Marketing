@@ -2,6 +2,7 @@ import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { tenantsTable } from "./tenants";
+import { brandAssetCategoriesTable } from "./brandAssetCategories";
 
 export const brandAssetsTable = pgTable("brand_assets", {
   id: serial("id").primaryKey(),
@@ -10,6 +11,7 @@ export const brandAssetsTable = pgTable("brand_assets", {
   title: text("title"),
   description: text("description"),
   tags: text("tags"),
+  categoryId: integer("category_id").references(() => brandAssetCategoriesTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

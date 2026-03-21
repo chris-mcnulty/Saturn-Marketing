@@ -18,6 +18,8 @@ tags:
     description: Category operations
   - name: assets
     description: Content asset operations
+  - name: brandAssetCategories
+    description: Brand asset category operations
   - name: brandAssets
     description: Brand asset library operations
   - name: campaigns
@@ -375,6 +377,76 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ImportResultSummary"
+
+  /brand-asset-categories:
+    get:
+      operationId: listBrandAssetCategories
+      tags: [brandAssetCategories]
+      summary: List brand asset categories for the current tenant
+      responses:
+        "200":
+          description: List of brand asset categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BrandAssetCategory"
+    post:
+      operationId: createBrandAssetCategory
+      tags: [brandAssetCategories]
+      summary: Create a new brand asset category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBrandAssetCategoryBody"
+      responses:
+        "201":
+          description: Brand asset category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandAssetCategory"
+
+  /brand-asset-categories/{id}:
+    patch:
+      operationId: updateBrandAssetCategory
+      tags: [brandAssetCategories]
+      summary: Update a brand asset category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBrandAssetCategoryBody"
+      responses:
+        "200":
+          description: Brand asset category updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandAssetCategory"
+    delete:
+      operationId: deleteBrandAssetCategory
+      tags: [brandAssetCategories]
+      summary: Delete a brand asset category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Brand asset category deleted
 
   /brand-assets:
     get:
@@ -1306,6 +1378,39 @@ components:
         suggestedImageUrl:
           type: ["string", "null"]
 
+    BrandAssetCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - name
+
+    CreateBrandAssetCategoryBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    UpdateBrandAssetCategoryBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
     BrandAsset:
       type: object
       properties:
@@ -1320,6 +1425,10 @@ components:
         description:
           type: ["string", "null"]
         tags:
+          type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
           type: ["string", "null"]
         createdAt:
           type: string
@@ -1341,6 +1450,8 @@ components:
           type: string
         tags:
           type: string
+        categoryId:
+          type: integer
       required:
         - imageUrl
 
@@ -1355,6 +1466,8 @@ components:
           type: ["string", "null"]
         tags:
           type: ["string", "null"]
+        categoryId:
+          type: ["integer", "null"]
 
     Campaign:
       type: object

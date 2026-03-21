@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout";
 import { 
   useListBrandAssets, 
   useCreateBrandAsset, 
   useDeleteBrandAsset,
+  useListBrandAssetCategories,
   getListBrandAssetsQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,13 +12,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Loader2, Plus, Image as ImageIcon, Trash2, Filter } from "lucide-react";
 import { motion } from "framer-motion";
 
 const createSchema = z.object({
@@ -25,24 +26,44 @@ const createSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   tags: z.string().optional(),
+  categoryId: z.string().optional(),
 });
 
 export default function BrandAssets() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: assets, isLoading } = useListBrandAssets();
+  const { data: brandCategories } = useListBrandAssetCategories();
   const createMutation = useCreateBrandAsset();
   const deleteMutation = useDeleteBrandAsset();
 
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
-    defaultValues: { imageUrl: "", title: "", description: "", tags: "" },
+    defaultValues: { imageUrl: "", title: "", description: "", tags: "", categoryId: "" },
   });
 
+  const filteredAssets = useMemo(() => {
+    if (!assets) return [];
+    if (filterCategoryId === "all") return assets;
+    if (filterCategoryId === "uncategorized") return assets.filter(a => !a.categoryId);
+    return assets.filter(a => a.categoryId === Number(filterCategoryId));
+  }, [assets, filterCategoryId]);
+
   const onSubmit = (data: z.infer<typeof createSchema>) => {
-    createMutation.mutate({ data }, {
+    const payload: any = {
+      imageUrl: data.imageUrl,
+      title: data.title,
+      description: data.description || undefined,
+      tags: data.tags || undefined,
+    };
+    if (data.categoryId && data.categoryId !== "none") {
+      payload.categoryId = Number(data.categoryId);
+    }
+
+    createMutation.mutate({ data: payload }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
         setIsCreateOpen(false);
@@ -76,22 +97,67 @@ export default function BrandAssets() {
           </Button>
         </div>
 
+        {brandCategories && brandCategories.length > 0 && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setFilterCategoryId("all")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filterCategoryId === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                All
+              </button>
+              {brandCategories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setFilterCategoryId(String(cat.id))}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filterCategoryId === String(cat.id)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+              <button
+                onClick={() => setFilterCategoryId("uncategorized")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filterCategoryId === "uncategorized"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                Uncategorized
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : assets?.length === 0 ? (
+        ) : filteredAssets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border/50">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <ImageIcon className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No brand assets yet</h3>
-            <p className="text-muted-foreground mb-6">Upload your first approved image to use in campaigns.</p>
+            <h3 className="text-xl font-semibold mb-2">
+              {filterCategoryId !== "all" ? "No assets in this category" : "No brand assets yet"}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {filterCategoryId !== "all" ? "Try selecting a different category or add new assets." : "Upload your first approved image to use in campaigns."}
+            </p>
             <Button onClick={() => setIsCreateOpen(true)} className="rounded-xl">Add Image</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {assets?.map((asset, i) => (
+            {filteredAssets.map((asset, i) => (
               <motion.div key={asset.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
                 <Card className="rounded-2xl border-border/50 overflow-hidden group">
                   <div className="aspect-video relative bg-secondary overflow-hidden">
@@ -101,6 +167,11 @@ export default function BrandAssets() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+                    {asset.categoryName && (
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-primary/90 text-primary-foreground text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm">
+                        {asset.categoryName}
+                      </div>
+                    )}
                   </div>
                   <div className="p-4">
                     <h4 className="font-semibold text-foreground truncate">{asset.title}</h4>
@@ -127,9 +198,7 @@ export default function BrandAssets() {
             <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:rounded-2xl">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <DialogHeader>
-                    <DialogTitle className="text-xl font-display">Add Brand Image</DialogTitle>
-                  </DialogHeader>
+                  <DialogPrimitive.Title className="text-xl font-display font-bold">Add Brand Image</DialogPrimitive.Title>
                   <div className="space-y-4 py-4">
                     <FormField control={form.control} name="imageUrl" render={({ field }) => (
                       <FormItem>
@@ -157,13 +226,33 @@ export default function BrandAssets() {
                         <FormControl><Input placeholder="logo, header, dark" className="rounded-xl" {...field} /></FormControl>
                       </FormItem>
                     )} />
+                    {brandCategories && brandCategories.length > 0 && (
+                      <FormField control={form.control} name="categoryId" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="rounded-xl">
+                                <SelectValue placeholder="Select a category (optional)" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">No category</SelectItem>
+                              {brandCategories.map(cat => (
+                                <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )} />
+                    )}
                   </div>
-                  <DialogFooter>
+                  <div className="flex justify-end gap-3">
                     <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="rounded-xl">Cancel</Button>
                     <Button type="submit" disabled={createMutation.isPending} className="rounded-xl bg-primary text-primary-foreground">
                       {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save
                     </Button>
-                  </DialogFooter>
+                  </div>
                 </form>
               </Form>
             </DialogPrimitive.Content>

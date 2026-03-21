@@ -328,6 +328,51 @@ export const ConfirmAssetsImportResponse = zod.object({
 });
 
 /**
+ * @summary List brand asset categories for the current tenant
+ */
+export const ListBrandAssetCategoriesResponseItem = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  createdAt: zod.date().optional(),
+});
+export const ListBrandAssetCategoriesResponse = zod.array(
+  ListBrandAssetCategoriesResponseItem,
+);
+
+/**
+ * @summary Create a new brand asset category
+ */
+export const CreateBrandAssetCategoryBody = zod.object({
+  name: zod.string(),
+});
+
+/**
+ * @summary Update a brand asset category
+ */
+export const UpdateBrandAssetCategoryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateBrandAssetCategoryBody = zod.object({
+  name: zod.string(),
+});
+
+export const UpdateBrandAssetCategoryResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  createdAt: zod.date().optional(),
+});
+
+/**
+ * @summary Delete a brand asset category
+ */
+export const DeleteBrandAssetCategoryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary List brand-approved visual assets
  */
 export const ListBrandAssetsResponseItem = zod.object({
@@ -337,6 +382,8 @@ export const ListBrandAssetsResponseItem = zod.object({
   title: zod.string().nullish(),
   description: zod.string().nullish(),
   tags: zod.string().nullish(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
   createdAt: zod.date(),
 });
 export const ListBrandAssetsResponse = zod.array(ListBrandAssetsResponseItem);
@@ -349,6 +396,7 @@ export const CreateBrandAssetBody = zod.object({
   title: zod.string().optional(),
   description: zod.string().optional(),
   tags: zod.string().optional(),
+  categoryId: zod.number().optional(),
 });
 
 /**
@@ -363,6 +411,7 @@ export const UpdateBrandAssetBody = zod.object({
   title: zod.string().nullish(),
   description: zod.string().nullish(),
   tags: zod.string().nullish(),
+  categoryId: zod.number().nullish(),
 });
 
 export const UpdateBrandAssetResponse = zod.object({
@@ -372,6 +421,8 @@ export const UpdateBrandAssetResponse = zod.object({
   title: zod.string().nullish(),
   description: zod.string().nullish(),
   tags: zod.string().nullish(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
   createdAt: zod.date(),
 });
 

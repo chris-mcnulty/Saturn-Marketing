@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, brandAssetsTable } from "@workspace/db";
+import { db, brandAssetsTable, brandAssetCategoriesTable } from "@workspace/db";
 import {
   CreateBrandAssetBody,
   UpdateBrandAssetParams,
@@ -12,10 +12,22 @@ import { requireAuth } from "../middlewares/auth";
 const router: IRouter = Router();
 
 router.get("/brand-assets", requireAuth, async (req, res): Promise<void> => {
-  const assets = await db.select().from(brandAssetsTable)
+  const rows = await db.select({
+    id: brandAssetsTable.id,
+    tenantId: brandAssetsTable.tenantId,
+    imageUrl: brandAssetsTable.imageUrl,
+    title: brandAssetsTable.title,
+    description: brandAssetsTable.description,
+    tags: brandAssetsTable.tags,
+    categoryId: brandAssetsTable.categoryId,
+    categoryName: brandAssetCategoriesTable.name,
+    createdAt: brandAssetsTable.createdAt,
+  })
+    .from(brandAssetsTable)
+    .leftJoin(brandAssetCategoriesTable, eq(brandAssetsTable.categoryId, brandAssetCategoriesTable.id))
     .where(eq(brandAssetsTable.tenantId, req.tenantId!))
     .orderBy(brandAssetsTable.createdAt);
-  res.json(assets);
+  res.json(rows);
 });
 
 router.post("/brand-assets", requireAuth, async (req, res): Promise<void> => {
@@ -31,9 +43,17 @@ router.post("/brand-assets", requireAuth, async (req, res): Promise<void> => {
     title: parsed.data.title || null,
     description: parsed.data.description || null,
     tags: parsed.data.tags || null,
+    categoryId: parsed.data.categoryId ?? null,
   }).returning();
 
-  res.status(201).json(asset);
+  if (asset.categoryId) {
+    const [cat] = await db.select({ name: brandAssetCategoriesTable.name })
+      .from(brandAssetCategoriesTable)
+      .where(eq(brandAssetCategoriesTable.id, asset.categoryId));
+    res.status(201).json({ ...asset, categoryName: cat?.name || null });
+  } else {
+    res.status(201).json({ ...asset, categoryName: null });
+  }
 });
 
 router.patch("/brand-assets/:id", requireAuth, async (req, res): Promise<void> => {
@@ -59,7 +79,14 @@ router.patch("/brand-assets/:id", requireAuth, async (req, res): Promise<void> =
     return;
   }
 
-  res.json(asset);
+  if (asset.categoryId) {
+    const [cat] = await db.select({ name: brandAssetCategoriesTable.name })
+      .from(brandAssetCategoriesTable)
+      .where(eq(brandAssetCategoriesTable.id, asset.categoryId));
+    res.json({ ...asset, categoryName: cat?.name || null });
+  } else {
+    res.json({ ...asset, categoryName: null });
+  }
 });
 
 router.delete("/brand-assets/:id", requireAuth, async (req, res): Promise<void> => {

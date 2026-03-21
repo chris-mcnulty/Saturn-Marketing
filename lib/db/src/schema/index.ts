@@ -2,6 +2,7 @@ export * from "./tenants";
 export * from "./users";
 export * from "./categories";
 export * from "./assets";
+export * from "./brandAssetCategories";
 export * from "./brandAssets";
 export * from "./campaigns";
 export * from "./campaignAssets";

@@ -16,5 +16,9 @@ export interface BrandAsset {
   description?: string | null;
   /** @nullable */
   tags?: string | null;
+  /** @nullable */
+  categoryId?: number | null;
+  /** @nullable */
+  categoryName?: string | null;
   createdAt: Date;
 }

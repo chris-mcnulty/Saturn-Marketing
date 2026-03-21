@@ -6,7 +6,11 @@ import {
   useListCategories,
   useCreateCategory,
   useDeleteCategory,
+  useListBrandAssetCategories,
+  useCreateBrandAssetCategory,
+  useDeleteBrandAssetCategory,
   getListCategoriesQueryKey,
+  getListBrandAssetCategoriesQueryKey,
   getGetTenantQueryKey,
   useListTenantUsers
 } from "@workspace/api-client-react";
@@ -23,14 +27,18 @@ export default function Settings() {
   
   const { data: tenant } = useGetTenant();
   const { data: categories } = useListCategories();
+  const { data: brandAssetCategories } = useListBrandAssetCategories();
   const { data: users } = useListTenantUsers();
 
   const updateTenantMut = useUpdateTenant();
   const createCategoryMut = useCreateCategory();
   const deleteCategoryMut = useDeleteCategory();
+  const createBrandCatMut = useCreateBrandAssetCategory();
+  const deleteBrandCatMut = useDeleteBrandAssetCategory();
 
   const [tenantName, setTenantName] = useState(tenant?.name || "");
   const [newCatName, setNewCatName] = useState("");
+  const [newBrandCatName, setNewBrandCatName] = useState("");
 
   const handleUpdateTenant = () => {
     updateTenantMut.mutate({ data: { name: tenantName } }, {
@@ -47,6 +55,16 @@ export default function Settings() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() });
         setNewCatName("");
+      }
+    });
+  };
+
+  const handleCreateBrandCat = () => {
+    if(!newBrandCatName) return;
+    createBrandCatMut.mutate({ data: { name: newBrandCatName } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() });
+        setNewBrandCatName("");
       }
     });
   };
@@ -91,6 +109,7 @@ export default function Settings() {
                 onChange={(e) => setNewCatName(e.target.value)} 
                 placeholder="New Category Name" 
                 className="rounded-xl h-11 max-w-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleCreateCat()}
               />
               <Button onClick={handleCreateCat} disabled={createCategoryMut.isPending || !newCatName} variant="secondary" className="h-11 rounded-xl">
                 Add
@@ -104,6 +123,41 @@ export default function Settings() {
                   <button onClick={() => {
                     deleteCategoryMut.mutate({ id: cat.id }, {
                       onSuccess: () => queryClient.invalidateQueries({ queryKey: getListCategoriesQueryKey() })
+                    })
+                  }} className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border-border/50">
+          <CardHeader>
+            <CardTitle className="font-display">Brand Asset Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-6">
+              <Input 
+                value={newBrandCatName} 
+                onChange={(e) => setNewBrandCatName(e.target.value)} 
+                placeholder="New Brand Category Name" 
+                className="rounded-xl h-11 max-w-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleCreateBrandCat()}
+              />
+              <Button onClick={handleCreateBrandCat} disabled={createBrandCatMut.isPending || !newBrandCatName} variant="secondary" className="h-11 rounded-xl">
+                Add
+              </Button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {brandAssetCategories?.map(cat => (
+                <div key={cat.id} className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-lg text-sm font-medium">
+                  {cat.name}
+                  <button onClick={() => {
+                    deleteBrandCatMut.mutate({ id: cat.id }, {
+                      onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() })
                     })
                   }} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-3.5 h-3.5" />

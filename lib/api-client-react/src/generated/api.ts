@@ -22,6 +22,7 @@ import type {
   Asset,
   AuthResponse,
   BrandAsset,
+  BrandAssetCategory,
   Campaign,
   CampaignAssetDetail,
   CampaignDetail,
@@ -29,6 +30,7 @@ import type {
   ConfirmImportBody,
   CreateAssetBody,
   CreateBrandAssetBody,
+  CreateBrandAssetCategoryBody,
   CreateCampaignBody,
   CreateCategoryBody,
   CreateGroundingDocBody,
@@ -54,6 +56,7 @@ import type {
   Tenant,
   UpdateAssetBody,
   UpdateBrandAssetBody,
+  UpdateBrandAssetCategoryBody,
   UpdateCampaignAssetBody,
   UpdateCampaignBody,
   UpdateCategoryBody,
@@ -1562,6 +1565,341 @@ export const useConfirmAssetsImport = <
   TContext
 > => {
   return useMutation(getConfirmAssetsImportMutationOptions(options));
+};
+
+/**
+ * @summary List brand asset categories for the current tenant
+ */
+export const getListBrandAssetCategoriesUrl = () => {
+  return `/api/brand-asset-categories`;
+};
+
+export const listBrandAssetCategories = async (
+  options?: RequestInit,
+): Promise<BrandAssetCategory[]> => {
+  return customFetch<BrandAssetCategory[]>(getListBrandAssetCategoriesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBrandAssetCategoriesQueryKey = () => {
+  return [`/api/brand-asset-categories`] as const;
+};
+
+export const getListBrandAssetCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBrandAssetCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBrandAssetCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListBrandAssetCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listBrandAssetCategories>>
+  > = ({ signal }) => listBrandAssetCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBrandAssetCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBrandAssetCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBrandAssetCategories>>
+>;
+export type ListBrandAssetCategoriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List brand asset categories for the current tenant
+ */
+
+export function useListBrandAssetCategories<
+  TData = Awaited<ReturnType<typeof listBrandAssetCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBrandAssetCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBrandAssetCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new brand asset category
+ */
+export const getCreateBrandAssetCategoryUrl = () => {
+  return `/api/brand-asset-categories`;
+};
+
+export const createBrandAssetCategory = async (
+  createBrandAssetCategoryBody: CreateBrandAssetCategoryBody,
+  options?: RequestInit,
+): Promise<BrandAssetCategory> => {
+  return customFetch<BrandAssetCategory>(getCreateBrandAssetCategoryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createBrandAssetCategoryBody),
+  });
+};
+
+export const getCreateBrandAssetCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBrandAssetCategory>>,
+    TError,
+    { data: BodyType<CreateBrandAssetCategoryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createBrandAssetCategory>>,
+  TError,
+  { data: BodyType<CreateBrandAssetCategoryBody> },
+  TContext
+> => {
+  const mutationKey = ["createBrandAssetCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createBrandAssetCategory>>,
+    { data: BodyType<CreateBrandAssetCategoryBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createBrandAssetCategory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateBrandAssetCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createBrandAssetCategory>>
+>;
+export type CreateBrandAssetCategoryMutationBody =
+  BodyType<CreateBrandAssetCategoryBody>;
+export type CreateBrandAssetCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new brand asset category
+ */
+export const useCreateBrandAssetCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createBrandAssetCategory>>,
+    TError,
+    { data: BodyType<CreateBrandAssetCategoryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createBrandAssetCategory>>,
+  TError,
+  { data: BodyType<CreateBrandAssetCategoryBody> },
+  TContext
+> => {
+  return useMutation(getCreateBrandAssetCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Update a brand asset category
+ */
+export const getUpdateBrandAssetCategoryUrl = (id: number) => {
+  return `/api/brand-asset-categories/${id}`;
+};
+
+export const updateBrandAssetCategory = async (
+  id: number,
+  updateBrandAssetCategoryBody: UpdateBrandAssetCategoryBody,
+  options?: RequestInit,
+): Promise<BrandAssetCategory> => {
+  return customFetch<BrandAssetCategory>(getUpdateBrandAssetCategoryUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateBrandAssetCategoryBody),
+  });
+};
+
+export const getUpdateBrandAssetCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBrandAssetCategory>>,
+    TError,
+    { id: number; data: BodyType<UpdateBrandAssetCategoryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateBrandAssetCategory>>,
+  TError,
+  { id: number; data: BodyType<UpdateBrandAssetCategoryBody> },
+  TContext
+> => {
+  const mutationKey = ["updateBrandAssetCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateBrandAssetCategory>>,
+    { id: number; data: BodyType<UpdateBrandAssetCategoryBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateBrandAssetCategory(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateBrandAssetCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateBrandAssetCategory>>
+>;
+export type UpdateBrandAssetCategoryMutationBody =
+  BodyType<UpdateBrandAssetCategoryBody>;
+export type UpdateBrandAssetCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a brand asset category
+ */
+export const useUpdateBrandAssetCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateBrandAssetCategory>>,
+    TError,
+    { id: number; data: BodyType<UpdateBrandAssetCategoryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateBrandAssetCategory>>,
+  TError,
+  { id: number; data: BodyType<UpdateBrandAssetCategoryBody> },
+  TContext
+> => {
+  return useMutation(getUpdateBrandAssetCategoryMutationOptions(options));
+};
+
+/**
+ * @summary Delete a brand asset category
+ */
+export const getDeleteBrandAssetCategoryUrl = (id: number) => {
+  return `/api/brand-asset-categories/${id}`;
+};
+
+export const deleteBrandAssetCategory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteBrandAssetCategoryUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteBrandAssetCategoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBrandAssetCategory>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteBrandAssetCategory>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteBrandAssetCategory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteBrandAssetCategory>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteBrandAssetCategory(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteBrandAssetCategoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteBrandAssetCategory>>
+>;
+
+export type DeleteBrandAssetCategoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a brand asset category
+ */
+export const useDeleteBrandAssetCategory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteBrandAssetCategory>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteBrandAssetCategory>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteBrandAssetCategoryMutationOptions(options));
 };
 
 /**
