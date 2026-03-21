@@ -121,7 +121,8 @@ export default function CampaignDetail() {
         toast({ title: "Posts generated successfully" });
       },
       onError: (err: any) => {
-        toast({ title: "Generation failed", description: err.data?.error, variant: "destructive" });
+        const description = err.data?.error || err.message || "Something went wrong";
+        toast({ title: "Generation failed", description, variant: "destructive" });
       }
     });
   };

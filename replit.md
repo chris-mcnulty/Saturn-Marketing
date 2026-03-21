@@ -37,7 +37,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Content Asset Library**: Add URLs, AI-powered content extraction (cheerio + OpenAI for summaries), category tagging, active/inactive toggle.
 - **Brand Asset Library**: Manage brand images with titles, descriptions, and tags.
 - **Campaign Management**: Create campaigns with scheduling (start date, duration, posts/day, posting times), assign assets and social accounts.
-- **Multi-Platform CSV Export**: Generate bulk posts with AI-powered variation. Supports SocialPilot, Hootsuite, Sprout Social, and Buffer formats. Max 500 posts per export.
+- **Multi-Platform CSV Export**: Generate bulk posts with AI-powered variation. Supports SocialPilot, Hootsuite, Sprout Social, and Buffer formats. Max 500 posts per export. AI calls (hashtag generation + 3 text variations per asset) are pre-generated in parallel with bounded concurrency (5 concurrent asset batches) to avoid timeouts on large campaigns.
 - **Social Account Management**: Configure social media accounts with SocialPilot account IDs.
 - **AI Grounding Documents**: Upload files (PDF, DOCX, TXT, Markdown) or paste text for brand voice guidelines, messaging frameworks, marketing guidelines, and methodology docs. Files are extracted to text server-side using pdf-parse and mammoth. Tenant-scoped, active/inactive toggle. Active docs are automatically injected into AI prompts for content extraction and post variation generation.
 - **Settings**: Manage organization profile, content categories, and team members.

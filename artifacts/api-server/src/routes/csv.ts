@@ -12,6 +12,21 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
+async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const idx = nextIndex++;
+      results[idx] = await tasks[idx]();
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, () => worker()));
+  return results;
+}
+
 interface PostSlot {
   postContent: string;
   imageUrls: string | null;
@@ -141,9 +156,45 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
     ? campaign.postingTimes.split(",").map((t: string) => t.trim())
     : generateDefaultTimes(campaign.postsPerDay);
 
+  const campaignHashtags = campaign.hashtags
+    ? campaign.hashtags.split(";").map((h: string) => h.trim()).filter(Boolean)
+    : [];
+
+  const VARIATIONS_PER_ASSET = 3;
+  const AI_CONCURRENCY = 5;
+
+  const aiStart = Date.now();
+  const aiTasks = activeAssets.map((asset) => async () => {
+    const postText = asset.overrideSummaryText || asset.summaryText || `Check out: ${asset.url}`;
+
+    const [hashtags, ...variations] = await Promise.all([
+      generateHashtags(postText, asset.title, asset.url, groundingContext, campaignHashtags),
+      ...Array.from({ length: VARIATIONS_PER_ASSET }, () =>
+        generateVariation(postText, groundingContext)
+      ),
+    ]);
+
+    return {
+      assetId: asset.assetId,
+      hashtags,
+      variations: variations.filter((v) => v !== postText),
+    };
+  });
+
+  const aiResults = await runWithConcurrency(aiTasks, AI_CONCURRENCY);
+  logger.info({ assetCount: activeAssets.length, aiDurationMs: Date.now() - aiStart }, "AI pre-generation complete");
+
+  const hashtagCache = new Map<number, string[]>();
+  const variationCache = new Map<number, string[]>();
+  for (const r of aiResults) {
+    hashtagCache.set(r.assetId, r.hashtags);
+    variationCache.set(r.assetId, r.variations);
+  }
+
   const startDate = new Date(campaign.startDate);
   const posts: PostSlot[] = [];
-  const assetUsageTracker: Map<number, Date> = new Map();
+  const assetUsageCount = new Map<number, number>();
+  const assetLastUsed = new Map<number, Date>();
 
   for (let day = 0; day < campaign.durationDays; day++) {
     for (let postIdx = 0; postIdx < campaign.postsPerDay; postIdx++) {
@@ -158,7 +209,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
       let selectedAsset = null;
       for (const asset of activeAssets) {
-        const lastUsed = assetUsageTracker.get(asset.assetId);
+        const lastUsed = assetLastUsed.get(asset.assetId);
         if (!lastUsed) {
           selectedAsset = asset;
           break;
@@ -178,15 +229,15 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
       const postText = selectedAsset.overrideSummaryText || selectedAsset.summaryText || `Check out: ${selectedAsset.url}`;
       const imageUrl = selectedAsset.overrideImageUrl || selectedAsset.suggestedImageUrl || null;
 
-      const isReuse = assetUsageTracker.has(selectedAsset.assetId);
+      const usageCount = assetUsageCount.get(selectedAsset.assetId) || 0;
       let finalText = postText;
-      if (isReuse) {
-        finalText = await generateVariation(postText, groundingContext);
-      }
 
-      const campaignHashtags = campaign.hashtags
-        ? campaign.hashtags.split(";").map((h: string) => h.trim()).filter(Boolean)
-        : [];
+      if (usageCount > 0) {
+        const variations = variationCache.get(selectedAsset.assetId) || [];
+        if (variations.length > 0) {
+          finalText = variations[(usageCount - 1) % variations.length];
+        }
+      }
 
       if (campaignHashtags.length > 0) {
         const hashtagStr = campaignHashtags.join(" ");
@@ -195,21 +246,15 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
         }
       }
 
-      const generatedHashtags = await generateHashtags(
-        finalText,
-        selectedAsset.title,
-        selectedAsset.url,
-        groundingContext,
-        campaignHashtags,
-      );
-
+      const generatedHashtags = hashtagCache.get(selectedAsset.assetId) || [];
       if (generatedHashtags.length > 0) {
         finalText = `${finalText} ${generatedHashtags.join(" ")}`;
       }
 
       finalText += `\n${selectedAsset.url}`;
 
-      assetUsageTracker.set(selectedAsset.assetId, currentDate);
+      assetUsageCount.set(selectedAsset.assetId, usageCount + 1);
+      assetLastUsed.set(selectedAsset.assetId, currentDate);
 
       const allTagsForCsv = [
         ...campaignHashtags.map((h: string) => h.replace(/#/g, "")),
