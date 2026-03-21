@@ -83,6 +83,11 @@ React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 - Layout: sidebar navigation with mobile responsive drawer
 - Auth context: auto-redirects to login when unauthenticated
 - API client: uses generated React Query hooks from `@workspace/api-client-react` with `credentials: "include"` for session cookies
+- **Branding**: Aurora visual theme matching Constellation (project delivery platform at https://github.com/chris-mcnulty/synozur-scdp)
+- **Brand Colors**: Primary #810FFB (purple), Secondary #E60CB3 (magenta)
+- **Font**: Avenir Next LT Pro (Light 300, Regular 400, Italic 400i, Demi 600, Bold 700, Bold Italic 700i) — files in `public/fonts/`
+- **Theme**: Light + Dark mode with ThemeProvider (localStorage-persisted, cycles light/dark/system)
+- **Aurora CSS**: Gradient utilities (`.synozur-gradient`, `.synozur-gradient-text`, `.aurora-bg`), sidebar active gradient bar, page header gradient bar, glass card effects
 
 ### `lib/db` (`@workspace/db`)
 

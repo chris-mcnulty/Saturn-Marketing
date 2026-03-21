@@ -66,11 +66,11 @@ export default function Campaigns() {
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'active': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'scheduled': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'draft': return 'bg-secondary text-secondary-foreground border-border';
-      case 'paused': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-      default: return 'bg-secondary text-secondary-foreground border-border';
+      case 'active': return 'bg-chart-4/10 text-chart-4 border-chart-4/20';
+      case 'scheduled': return 'bg-primary/10 text-primary border-primary/20';
+      case 'draft': return 'bg-muted text-muted-foreground border-border';
+      case 'paused': return 'bg-chart-5/10 text-chart-5 border-chart-5/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 

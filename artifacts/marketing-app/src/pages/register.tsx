@@ -7,9 +7,10 @@ import { useRegister } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Megaphone } from "lucide-react";
+import { Loader2, Megaphone, Sun, Moon } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion } from "framer-motion";
+import { useTheme } from "@/lib/theme-context";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -21,6 +22,7 @@ const registerSchema = z.object({
 export default function Register() {
   const { toast } = useToast();
   const registerMutation = useRegister();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -44,16 +46,23 @@ export default function Register() {
 
   return (
     <div className="min-h-screen w-full flex bg-background">
-      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24 relative">
+        <button
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          className="absolute top-6 right-6 p-2 rounded-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          {resolvedTheme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+
         <motion.div 
           initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
           className="mx-auto w-full max-w-sm lg:w-96"
         >
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/25">
+            <div className="w-10 h-10 rounded-xl synozur-gradient flex items-center justify-center shadow-lg">
               <Megaphone className="w-5 h-5 text-white" />
             </div>
-            <span className="font-display font-bold text-2xl tracking-tight">Synozur</span>
+            <span className="font-display font-bold text-2xl tracking-tight synozur-gradient-text">Synozur</span>
           </div>
 
           <h2 className="mt-8 text-3xl font-display font-bold tracking-tight text-foreground">
@@ -115,7 +124,7 @@ export default function Register() {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" className="h-11 rounded-xl" {...field} />
+                        <Input type="password" placeholder="" className="h-11 rounded-xl" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -124,7 +133,7 @@ export default function Register() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 mt-2 rounded-xl bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-base font-semibold shadow-lg shadow-primary/25 transition-all"
+                  className="w-full h-12 mt-2 rounded-xl synozur-gradient text-white text-base font-semibold shadow-lg transition-all hover:opacity-90"
                   disabled={registerMutation.isPending}
                 >
                   {registerMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign up"}
@@ -141,13 +150,25 @@ export default function Register() {
           </div>
         </motion.div>
       </div>
-      <div className="hidden lg:block relative w-0 flex-1">
-        <img
-          className="absolute inset-0 h-full w-full object-cover"
-          src={`${import.meta.env.BASE_URL}images/auth-bg.png`}
-          alt="Abstract background"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent mix-blend-multiply" />
+      <div className="hidden lg:block relative w-0 flex-1 aurora-bg">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-center px-12"
+          >
+            <div className="w-20 h-20 rounded-2xl synozur-gradient flex items-center justify-center shadow-2xl mx-auto mb-8">
+              <Megaphone className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-4xl font-display font-bold synozur-gradient-text mb-4">
+              Marketing Command Center
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-md">
+              Generate AI-powered social media content at scale. Manage campaigns. Export to SocialPilot.
+            </p>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

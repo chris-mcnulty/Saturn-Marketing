@@ -22,18 +22,17 @@ export default function Dashboard() {
   const recentAssets = assets?.slice(0, 5) || [];
 
   const stats = [
-    { name: "Total Assets", value: assets?.length || 0, icon: Files, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { name: "Active Campaigns", value: activeCampaigns.length, icon: Megaphone, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-    { name: "Brand Images", value: brandAssets?.length || 0, icon: ImageIcon, color: "text-violet-500", bg: "bg-violet-500/10" },
-    { name: "Total Campaigns", value: campaigns?.length || 0, icon: Activity, color: "text-teal-500", bg: "bg-teal-500/10" },
+    { name: "Total Assets", value: assets?.length || 0, icon: Files, color: "text-primary", bg: "bg-primary/10" },
+    { name: "Active Campaigns", value: activeCampaigns.length, icon: Megaphone, color: "text-secondary", bg: "bg-secondary/10" },
+    { name: "Brand Images", value: brandAssets?.length || 0, icon: ImageIcon, color: "text-chart-3", bg: "bg-chart-3/10" },
+    { name: "Total Campaigns", value: campaigns?.length || 0, icon: Activity, color: "text-chart-4", bg: "bg-chart-4/10" },
   ];
 
   return (
     <AppLayout>
       <div className="flex flex-col gap-8 pb-10">
         
-        {/* Welcome Hero */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/10 via-accent/5 to-background border border-primary/10 p-8 sm:p-10">
+        <div className="relative overflow-hidden rounded-3xl aurora-bg border border-primary/10 p-8 sm:p-10">
           <div className="relative z-10 max-w-2xl">
             <h1 className="text-4xl font-display font-bold text-foreground mb-4">
               Marketing Command Center
@@ -44,27 +43,20 @@ export default function Dashboard() {
             <div className="flex gap-4">
               <Link 
                 href="/campaigns" 
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-xl synozur-gradient text-white font-medium shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all"
               >
                 View Campaigns
               </Link>
               <Link 
                 href="/assets" 
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-background border border-border text-foreground font-medium shadow-sm hover:bg-secondary transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-card border border-border text-foreground font-medium shadow-sm hover:bg-accent transition-all"
               >
                 Manage Assets
               </Link>
             </div>
           </div>
-          <img 
-            src={`${import.meta.env.BASE_URL}images/dashboard-hero.png`} 
-            alt="Hero decorative" 
-            className="absolute right-0 top-0 h-full object-cover mix-blend-multiply opacity-50 md:opacity-100 mask-image-linear-gradient"
-            style={{ maskImage: "linear-gradient(to right, transparent, black)" }}
-          />
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
             <motion.div
@@ -73,7 +65,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card className="rounded-2xl border-border/50 shadow-sm hover:shadow-md transition-all">
+              <Card className="glass-card rounded-2xl border-border/50 hover:shadow-md transition-all">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className={`p-4 rounded-2xl ${stat.bg}`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
@@ -89,8 +81,7 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Assets */}
-          <Card className="rounded-2xl border-border/50 shadow-sm">
+          <Card className="glass-card rounded-2xl border-border/50 page-header-gradient-bar">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xl font-display font-semibold">Recent Assets</CardTitle>
               <Link href="/assets" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
@@ -103,8 +94,8 @@ export default function Dashboard() {
                   <div className="text-center py-8 text-muted-foreground">No assets added yet</div>
                 ) : (
                   recentAssets.map((asset) => (
-                    <div key={asset.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/50 transition-colors">
-                      <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                    <div key={asset.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-colors">
+                      <div className="w-12 h-12 rounded-lg bg-accent flex items-center justify-center shrink-0">
                         {asset.suggestedImageUrl ? (
                           <img src={asset.suggestedImageUrl} alt={asset.title || "Asset"} className="w-full h-full object-cover rounded-lg" />
                         ) : (
@@ -127,8 +118,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Active Campaigns */}
-          <Card className="rounded-2xl border-border/50 shadow-sm">
+          <Card className="glass-card rounded-2xl border-border/50 page-header-gradient-bar">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xl font-display font-semibold">Active Campaigns</CardTitle>
               <Link href="/campaigns" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
@@ -148,10 +138,10 @@ export default function Dashboard() {
                             {campaign.name}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Starts {format(new Date(campaign.startDate), "MMM d, yyyy")} • {campaign.durationDays} days
+                            Starts {format(new Date(campaign.startDate), "MMM d, yyyy")} - {campaign.durationDays} days
                           </p>
                         </div>
-                        <div className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 text-xs font-medium capitalize">
+                        <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium capitalize">
                           {campaign.status}
                         </div>
                       </div>
