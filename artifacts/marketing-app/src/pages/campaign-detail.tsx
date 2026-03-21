@@ -103,6 +103,9 @@ export default function CampaignDetail() {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         toast({ title: "CSV Downloaded" });
+      },
+      onError: (err: any) => {
+        toast({ title: "Export failed", description: err.data?.error || err.message || "An unexpected error occurred", variant: "destructive" });
       }
     });
   };
@@ -247,8 +250,8 @@ export default function CampaignDetail() {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Post Previews</h3>
                 {generatedPosts.length > 0 && (
-                  <Button onClick={handleExport} className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
-                    <Download className="w-4 h-4 mr-2" /> Export CSV
+                  <Button onClick={handleExport} disabled={exportCsvMut.isPending} className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
+                    {exportCsvMut.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Export CSV
                   </Button>
                 )}
               </div>
