@@ -7,7 +7,8 @@ import { useRegister } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Megaphone, Sun, Moon } from "lucide-react";
+import { Loader2, Sun, Moon } from "lucide-react";
+import { SynozurLogo, SynozurTextLogo } from "@/components/synozur-logo";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { motion } from "framer-motion";
 import { useTheme } from "@/lib/theme-context";
@@ -59,10 +60,8 @@ export default function Register() {
           className="mx-auto w-full max-w-sm lg:w-96"
         >
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl saturn-gradient flex items-center justify-center shadow-lg">
-              <Megaphone className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-display font-bold text-2xl tracking-tight saturn-gradient-text">Saturn</span>
+            <SynozurLogo className="w-10 h-10" />
+            <SynozurTextLogo className="h-8" />
           </div>
 
           <h2 className="mt-8 text-3xl font-display font-bold tracking-tight text-foreground">
@@ -164,8 +163,8 @@ export default function Register() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="text-center px-12"
           >
-            <div className="w-20 h-20 rounded-2xl saturn-gradient flex items-center justify-center shadow-2xl mx-auto mb-8 backdrop-blur-sm bg-opacity-90">
-              <Megaphone className="w-10 h-10 text-white" />
+            <div className="mx-auto mb-8">
+              <SynozurLogo className="w-20 h-20" variant="white" />
             </div>
             <h2 className="text-4xl font-display font-bold text-white mb-4 drop-shadow-lg">
               Marketing Command Center

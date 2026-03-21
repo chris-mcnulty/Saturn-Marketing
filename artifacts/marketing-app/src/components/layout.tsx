@@ -14,6 +14,7 @@ import {
   Moon,
   Monitor
 } from "lucide-react";
+import { SynozurLogo, SynozurTextLogo } from "@/components/synozur-logo";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useLogout } from "@workspace/api-client-react";
@@ -67,12 +68,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex">
       <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar">
         <div className="p-6 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl saturn-gradient flex items-center justify-center shadow-lg">
-            <Megaphone className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold text-xl saturn-gradient-text">
-            Saturn
-          </span>
+          <SynozurLogo className="w-8 h-8" />
+          <SynozurTextLogo className="h-6" />
         </div>
 
         <nav className="flex-1 px-3 space-y-1 mt-4">
@@ -122,10 +119,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-border/50 bg-background/80 backdrop-blur-lg sticky top-0 z-40">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl saturn-gradient flex items-center justify-center">
-              <Megaphone className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-xl saturn-gradient-text">Saturn</span>
+            <SynozurLogo className="w-8 h-8" />
+            <SynozurTextLogo className="h-6" />
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
