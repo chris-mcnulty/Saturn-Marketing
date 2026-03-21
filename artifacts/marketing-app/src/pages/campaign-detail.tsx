@@ -7,6 +7,7 @@ import {
   useRemoveCampaignAsset,
   useUpdateCampaignAsset,
   useListAssets,
+  useListCategories,
   useListSocialAccounts,
   useAddCampaignSocialAccount,
   useRemoveCampaignSocialAccount,
@@ -33,6 +34,7 @@ export default function CampaignDetail() {
 
   const { data: campaign, isLoading } = useGetCampaign(id);
   const { data: allAssets } = useListAssets();
+  const { data: categories } = useListCategories();
   const { data: allAccounts } = useListSocialAccounts();
 
   // Mutations
@@ -48,6 +50,7 @@ export default function CampaignDetail() {
   // State
   const [activeTab, setActiveTab] = useState("assets");
   const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+  const [assetCategoryFilter, setAssetCategoryFilter] = useState<string>("");
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [generatedPosts, setGeneratedPosts] = useState<any[]>([]);
 
@@ -57,11 +60,16 @@ export default function CampaignDetail() {
     });
   };
 
+  const closeAddAssetDialog = () => {
+    setIsAddAssetOpen(false);
+    setAssetCategoryFilter("");
+  };
+
   const handleAddAsset = (assetId: number) => {
     addAssetMut.mutate({ id, data: { assetId } }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
-        setIsAddAssetOpen(false);
+        closeAddAssetDialog();
         toast({ title: "Asset added" });
       }
     });
@@ -297,13 +305,28 @@ export default function CampaignDetail() {
         </div>
 
         {/* Add Asset Dialog */}
-        <DialogPrimitive.Root open={isAddAssetOpen} onOpenChange={setIsAddAssetOpen}>
+        <DialogPrimitive.Root open={isAddAssetOpen} onOpenChange={(open) => { if (!open) closeAddAssetDialog(); else setIsAddAssetOpen(true); }}>
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
             <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-background p-6 shadow-2xl sm:rounded-2xl border">
               <h2 className="text-xl font-display font-bold mb-4">Select Asset</h2>
+              {categories && categories.length > 0 && (
+                <div className="mb-3">
+                  <select
+                    className="w-full h-10 px-3 py-2 rounded-xl border border-input bg-background text-sm"
+                    value={assetCategoryFilter}
+                    onChange={(e) => setAssetCategoryFilter(e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="max-h-96 overflow-y-auto space-y-2">
-                {allAssets?.filter(a => !campaign.assets.find(ca => ca.assetId === a.id)).map(asset => (
+                {allAssets
+                  ?.filter(a => !campaign.assets.find(ca => ca.assetId === a.id))
+                  .filter(a => !assetCategoryFilter || a.categoryId === Number(assetCategoryFilter))
+                  .map(asset => (
                   <div key={asset.id} className="flex items-center justify-between p-3 border rounded-xl hover:bg-secondary/50">
                     <div className="truncate pr-4">
                       <p className="font-medium text-sm truncate">{asset.title || asset.url}</p>
@@ -313,7 +336,7 @@ export default function CampaignDetail() {
                 ))}
               </div>
               <div className="mt-4 flex justify-end">
-                <Button variant="outline" onClick={() => setIsAddAssetOpen(false)}>Close</Button>
+                <Button variant="outline" onClick={closeAddAssetDialog}>Close</Button>
               </div>
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
