@@ -23,7 +23,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem("saturn-theme");
       if (stored === "light" || stored === "dark" || stored === "system") return stored;
     }
-    return "light";
+    return "dark";
   });
 
   const resolvedTheme = theme === "system" ? getSystemTheme() : theme;
