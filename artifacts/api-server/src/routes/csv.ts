@@ -8,6 +8,7 @@ import {
 import { requireAuth } from "../middlewares/auth";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getGroundingContext } from "../lib/groundingContext";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,59 @@ interface PostSlot {
   tags: string | null;
   assetId: number;
   assetTitle: string | null;
+}
+
+async function generateHashtags(
+  postContent: string,
+  assetTitle: string | null,
+  assetUrl: string,
+  groundingContext: string,
+  existingHashtags: string[],
+): Promise<string[]> {
+  try {
+    const systemPromptParts = [
+      "You are a social media marketing expert specializing in hashtag strategy. Generate 3-5 contextually relevant hashtags for the given social media post. The hashtags should be specific to the post's content and topic, not generic.",
+      "Rules:",
+      "- Return ONLY the hashtags, one per line, each starting with #",
+      "- Do NOT duplicate any of the existing campaign hashtags listed below",
+      "- Keep hashtags concise and relevant",
+      "- Use camelCase for multi-word hashtags (e.g., #ContentMarketing)",
+      existingHashtags.length > 0
+        ? `\nExisting campaign hashtags to AVOID duplicating: ${existingHashtags.join(" ")}`
+        : "",
+    ];
+    if (groundingContext) {
+      systemPromptParts.push(groundingContext);
+    }
+
+    const userContent = [
+      `Post content: ${postContent}`,
+      assetTitle ? `Asset title: ${assetTitle}` : "",
+      `Asset URL: ${assetUrl}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 256,
+      system: systemPromptParts.filter(Boolean).join("\n"),
+      messages: [{ role: "user", content: userContent }],
+    });
+    const block = message.content[0];
+    const text = block.type === "text" ? block.text : "";
+    const existingLower = new Set(existingHashtags.map((h: string) => h.toLowerCase().replace(/#/g, "")));
+    const hashtags = text
+      .split("\n")
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.startsWith("#"))
+      .filter((line: string) => !existingLower.has(line.toLowerCase().replace(/#/g, "")))
+      .slice(0, 5);
+    return hashtags;
+  } catch (e) {
+    logger.warn({ err: e }, "AI hashtag generation failed, falling back to no generated hashtags");
+    return [];
+  }
 }
 
 async function generateVariation(originalText: string, groundingContext: string): Promise<string> {
@@ -84,7 +138,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
   const groundingContext = await getGroundingContext(tenantId);
 
   const postingTimesArr = campaign.postingTimes
-    ? campaign.postingTimes.split(",").map(t => t.trim())
+    ? campaign.postingTimes.split(",").map((t: string) => t.trim())
     : generateDefaultTimes(campaign.postsPerDay);
 
   const startDate = new Date(campaign.startDate);
@@ -130,16 +184,37 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
         finalText = await generateVariation(postText, groundingContext);
       }
 
-      if (campaign.hashtags) {
-        const hashtagStr = campaign.hashtags.split(";").map(h => h.trim()).filter(Boolean).join(" ");
+      const campaignHashtags = campaign.hashtags
+        ? campaign.hashtags.split(";").map((h: string) => h.trim()).filter(Boolean)
+        : [];
+
+      if (campaignHashtags.length > 0) {
+        const hashtagStr = campaignHashtags.join(" ");
         if (!finalText.includes(hashtagStr)) {
           finalText = `${finalText}\n\n${hashtagStr}`;
         }
       }
 
+      const generatedHashtags = await generateHashtags(
+        finalText,
+        selectedAsset.title,
+        selectedAsset.url,
+        groundingContext,
+        campaignHashtags,
+      );
+
+      if (generatedHashtags.length > 0) {
+        finalText = `${finalText} ${generatedHashtags.join(" ")}`;
+      }
+
       finalText += `\n${selectedAsset.url}`;
 
       assetUsageTracker.set(selectedAsset.assetId, currentDate);
+
+      const allTagsForCsv = [
+        ...campaignHashtags.map((h: string) => h.replace(/#/g, "")),
+        ...generatedHashtags.map((h: string) => h.replace(/#/g, "")),
+      ].filter(Boolean).join(";");
 
       for (const account of socialAccounts) {
         posts.push({
@@ -148,7 +223,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
           dateTime: dateTimeStr,
           accountId: account.socialPilotAccountId,
           firstComment: null,
-          tags: campaign.hashtags ? campaign.hashtags.replace(/;/g, ";").replace(/#/g, "") : null,
+          tags: allTagsForCsv || null,
           assetId: selectedAsset.assetId,
           assetTitle: selectedAsset.title,
         });

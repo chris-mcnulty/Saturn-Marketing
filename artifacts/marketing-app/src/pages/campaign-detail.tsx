@@ -146,7 +146,7 @@ export default function CampaignDetail() {
             <div><span className="text-muted-foreground">Start:</span> <span className="font-semibold">{campaign.startDate}</span></div>
             <div><span className="text-muted-foreground">Duration:</span> <span className="font-semibold">{campaign.durationDays} days</span></div>
             <div><span className="text-muted-foreground">Freq:</span> <span className="font-semibold">{campaign.postsPerDay}/day</span></div>
-            <div><span className="text-muted-foreground">Tags:</span> <span className="font-semibold">{campaign.hashtags || 'None'}</span></div>
+            <div><span className="text-muted-foreground">Always-Include Tags:</span> <span className="font-semibold">{campaign.hashtags || 'None'}</span></div>
           </div>
         </div>
 
@@ -277,7 +277,15 @@ export default function CampaignDetail() {
                             <span>Acct: {post.accountId}</span>
                           </div>
                           <p className="text-sm whitespace-pre-wrap">{post.postContent}</p>
-                          {post.tags && <p className="text-xs text-primary mt-2">{post.tags.split(';').map((t: string) => `#${t}`).join(' ')}</p>}
+                          {post.tags && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {post.tags.split(';').map((t: string, idx: number) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                  #{t.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </Card>

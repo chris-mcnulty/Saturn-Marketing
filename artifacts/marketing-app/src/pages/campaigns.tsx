@@ -208,8 +208,9 @@ export default function Campaigns() {
                     
                     <FormField control={form.control} name="hashtags" render={({ field }) => (
                       <FormItem className="md:col-span-2">
-                        <FormLabel>Mandatory Hashtags</FormLabel>
-                        <FormControl><Input placeholder="#Marketing #AI" className="rounded-xl h-11" {...field} /></FormControl>
+                        <FormLabel>Always-Include Hashtags</FormLabel>
+                        <FormControl><Input placeholder="#Marketing; #AI; #Brand" className="rounded-xl h-11" {...field} /></FormControl>
+                        <p className="text-xs text-muted-foreground mt-1">Separate with semicolons. These hashtags will appear on every post. Additional hashtags are generated automatically based on each post's content.</p>
                         <FormMessage />
                       </FormItem>
                     )} />
