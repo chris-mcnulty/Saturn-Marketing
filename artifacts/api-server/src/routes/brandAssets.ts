@@ -59,7 +59,7 @@ router.post("/brand-assets", requireAuth, async (req, res): Promise<void> => {
   if (asset.categoryId) {
     const [cat] = await db.select({ name: brandAssetCategoriesTable.name })
       .from(brandAssetCategoriesTable)
-      .where(eq(brandAssetCategoriesTable.id, asset.categoryId));
+      .where(and(eq(brandAssetCategoriesTable.id, asset.categoryId), eq(brandAssetCategoriesTable.tenantId, req.tenantId!)));
     res.status(201).json({ ...asset, categoryName: cat?.name || null });
   } else {
     res.status(201).json({ ...asset, categoryName: null });
@@ -102,7 +102,7 @@ router.patch("/brand-assets/:id", requireAuth, async (req, res): Promise<void> =
   if (asset.categoryId) {
     const [cat] = await db.select({ name: brandAssetCategoriesTable.name })
       .from(brandAssetCategoriesTable)
-      .where(eq(brandAssetCategoriesTable.id, asset.categoryId));
+      .where(and(eq(brandAssetCategoriesTable.id, asset.categoryId), eq(brandAssetCategoriesTable.tenantId, req.tenantId!)));
     res.json({ ...asset, categoryName: cat?.name || null });
   } else {
     res.json({ ...asset, categoryName: null });
