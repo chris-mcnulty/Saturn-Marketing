@@ -701,25 +701,41 @@ export const ListGeneratedPostsResponse = zod.array(
 );
 
 /**
- * @summary Generate posts for a campaign
+ * @summary Generate posts for a campaign (async)
  */
 export const GenerateCampaignPostsParams = zod.object({
   id: zod.coerce.number(),
 });
 
-export const GenerateCampaignPostsResponseItem = zod.object({
-  postContent: zod.string(),
-  imageUrls: zod.string().nullish(),
-  dateTime: zod.string(),
-  accountId: zod.string(),
-  firstComment: zod.string().nullish(),
-  tags: zod.string().nullish(),
-  assetId: zod.number(),
-  assetTitle: zod.string().nullish(),
+/**
+ * @summary Poll for post generation job status
+ */
+export const GetGeneratePostsStatusParams = zod.object({
+  id: zod.coerce.number(),
 });
-export const GenerateCampaignPostsResponse = zod.array(
-  GenerateCampaignPostsResponseItem,
-);
+
+export const GetGeneratePostsStatusQueryParams = zod.object({
+  jobId: zod.coerce.string(),
+});
+
+export const GetGeneratePostsStatusResponse = zod.object({
+  status: zod.enum(["processing", "complete", "error"]),
+  posts: zod
+    .array(
+      zod.object({
+        postContent: zod.string(),
+        imageUrls: zod.string().nullish(),
+        dateTime: zod.string(),
+        accountId: zod.string(),
+        firstComment: zod.string().nullish(),
+        tags: zod.string().nullish(),
+        assetId: zod.number(),
+        assetTitle: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  error: zod.string().optional(),
+});
 
 /**
  * @summary Export campaign posts as SocialPilot CSV

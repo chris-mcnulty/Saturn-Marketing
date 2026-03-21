@@ -34,7 +34,10 @@ import type {
   CreateGroundingDocBody,
   CreateSocialAccountBody,
   ErrorResponse,
+  GenerateCampaignPosts202,
   GeneratedPost,
+  GetGeneratePostsStatus200,
+  GetGeneratePostsStatusParams,
   GroundingDoc,
   HealthStatus,
   ImportCsvBody,
@@ -3125,7 +3128,7 @@ export function useListGeneratedPosts<
 }
 
 /**
- * @summary Generate posts for a campaign
+ * @summary Generate posts for a campaign (async)
  */
 export const getGenerateCampaignPostsUrl = (id: number) => {
   return `/api/campaigns/${id}/generate-posts`;
@@ -3134,11 +3137,14 @@ export const getGenerateCampaignPostsUrl = (id: number) => {
 export const generateCampaignPosts = async (
   id: number,
   options?: RequestInit,
-): Promise<GeneratedPost[]> => {
-  return customFetch<GeneratedPost[]>(getGenerateCampaignPostsUrl(id), {
-    ...options,
-    method: "POST",
-  });
+): Promise<GenerateCampaignPosts202> => {
+  return customFetch<GenerateCampaignPosts202>(
+    getGenerateCampaignPostsUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
 };
 
 export const getGenerateCampaignPostsMutationOptions = <
@@ -3186,7 +3192,7 @@ export type GenerateCampaignPostsMutationResult = NonNullable<
 export type GenerateCampaignPostsMutationError = ErrorType<unknown>;
 
 /**
- * @summary Generate posts for a campaign
+ * @summary Generate posts for a campaign (async)
  */
 export const useGenerateCampaignPosts = <
   TError = ErrorType<unknown>,
@@ -3207,6 +3213,126 @@ export const useGenerateCampaignPosts = <
 > => {
   return useMutation(getGenerateCampaignPostsMutationOptions(options));
 };
+
+/**
+ * @summary Poll for post generation job status
+ */
+export const getGetGeneratePostsStatusUrl = (
+  id: number,
+  params: GetGeneratePostsStatusParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/campaigns/${id}/generate-posts-status?${stringifiedParams}`
+    : `/api/campaigns/${id}/generate-posts-status`;
+};
+
+export const getGeneratePostsStatus = async (
+  id: number,
+  params: GetGeneratePostsStatusParams,
+  options?: RequestInit,
+): Promise<GetGeneratePostsStatus200> => {
+  return customFetch<GetGeneratePostsStatus200>(
+    getGetGeneratePostsStatusUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetGeneratePostsStatusQueryKey = (
+  id: number,
+  params?: GetGeneratePostsStatusParams,
+) => {
+  return [
+    `/api/campaigns/${id}/generate-posts-status`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetGeneratePostsStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGeneratePostsStatus>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params: GetGeneratePostsStatusParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGeneratePostsStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetGeneratePostsStatusQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getGeneratePostsStatus>>
+  > = ({ signal }) =>
+    getGeneratePostsStatus(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGeneratePostsStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGeneratePostsStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGeneratePostsStatus>>
+>;
+export type GetGeneratePostsStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Poll for post generation job status
+ */
+
+export function useGetGeneratePostsStatus<
+  TData = Awaited<ReturnType<typeof getGeneratePostsStatus>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params: GetGeneratePostsStatusParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGeneratePostsStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGeneratePostsStatusQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Export campaign posts as SocialPilot CSV

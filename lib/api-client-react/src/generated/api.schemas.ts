@@ -489,3 +489,26 @@ export const ListCampaignsStatus = {
   paused: "paused",
   completed: "completed",
 } as const;
+
+export type GenerateCampaignPosts202 = {
+  jobId: string;
+};
+
+export type GetGeneratePostsStatusParams = {
+  jobId: string;
+};
+
+export type GetGeneratePostsStatus200Status =
+  (typeof GetGeneratePostsStatus200Status)[keyof typeof GetGeneratePostsStatus200Status];
+
+export const GetGeneratePostsStatus200Status = {
+  processing: "processing",
+  complete: "complete",
+  error: "error",
+} as const;
+
+export type GetGeneratePostsStatus200 = {
+  status: GetGeneratePostsStatus200Status;
+  posts?: GeneratedPost[];
+  error?: string;
+};

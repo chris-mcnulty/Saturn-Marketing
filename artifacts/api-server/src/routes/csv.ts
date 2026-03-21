@@ -12,6 +12,24 @@ import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
+interface GenerationJob {
+  status: "processing" | "complete" | "error";
+  posts?: PostSlot[];
+  error?: string;
+  startedAt: number;
+}
+
+const generationJobs = new Map<string, GenerationJob>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, job] of generationJobs) {
+    if (now - job.startedAt > 10 * 60 * 1000) {
+      generationJobs.delete(id);
+    }
+  }
+}, 60 * 1000);
+
 async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
   const results: T[] = new Array(tasks.length);
   let nextIndex = 0;
@@ -471,38 +489,73 @@ router.post("/campaigns/:id/generate-posts", requireAuth, async (req, res): Prom
     return;
   }
 
-  try {
-    const posts = await generatePosts(params.data.id, req.tenantId!);
+  const jobId = `gen_${params.data.id}_${Date.now()}`;
+  const campaignId = params.data.id;
+  const tenantId = req.tenantId!;
 
-    await db.delete(generatedPostsTable).where(and(
-      eq(generatedPostsTable.campaignId, params.data.id),
-      eq(generatedPostsTable.tenantId, req.tenantId!),
-    ));
+  generationJobs.set(jobId, { status: "processing", startedAt: Date.now() });
 
-    if (posts.length > 0) {
-      const rows = posts.map(p => ({
-        campaignId: params.data.id,
-        tenantId: req.tenantId!,
-        postContent: p.postContent,
-        imageUrls: p.imageUrls,
-        dateTime: p.dateTime,
-        accountId: p.accountId,
-        firstComment: p.firstComment,
-        tags: p.tags,
-        assetId: p.assetId,
-        assetTitle: p.assetTitle,
-      }));
+  (async () => {
+    try {
+      const posts = await generatePosts(campaignId, tenantId);
 
-      const BATCH_SIZE = 100;
-      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-        await db.insert(generatedPostsTable).values(rows.slice(i, i + BATCH_SIZE));
+      await db.delete(generatedPostsTable).where(and(
+        eq(generatedPostsTable.campaignId, campaignId),
+        eq(generatedPostsTable.tenantId, tenantId),
+      ));
+
+      if (posts.length > 0) {
+        const rows = posts.map(p => ({
+          campaignId,
+          tenantId,
+          postContent: p.postContent,
+          imageUrls: p.imageUrls,
+          dateTime: p.dateTime,
+          accountId: p.accountId,
+          firstComment: p.firstComment,
+          tags: p.tags,
+          assetId: p.assetId,
+          assetTitle: p.assetTitle,
+        }));
+
+        const BATCH_SIZE = 100;
+        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+          await db.insert(generatedPostsTable).values(rows.slice(i, i + BATCH_SIZE));
+        }
       }
-    }
 
-    logger.info({ campaignId: params.data.id, postCount: posts.length }, "Generated posts saved");
-    res.json(posts);
-  } catch (e: any) {
-    res.status(400).json({ error: e.message });
+      logger.info({ campaignId, postCount: posts.length, jobId }, "Generated posts saved");
+      generationJobs.set(jobId, { status: "complete", posts, startedAt: Date.now() });
+    } catch (e: any) {
+      logger.error({ campaignId, jobId, err: e }, "Post generation failed");
+      generationJobs.set(jobId, { status: "error", error: e.message, startedAt: Date.now() });
+    }
+  })();
+
+  res.status(202).json({ jobId });
+});
+
+router.get("/campaigns/:id/generate-posts-status", requireAuth, async (req, res): Promise<void> => {
+  const jobId = req.query.jobId as string;
+  if (!jobId) {
+    res.status(400).json({ error: "jobId query parameter required" });
+    return;
+  }
+
+  const job = generationJobs.get(jobId);
+  if (!job) {
+    res.status(404).json({ error: "Job not found or expired" });
+    return;
+  }
+
+  if (job.status === "complete") {
+    generationJobs.delete(jobId);
+    res.json({ status: "complete", posts: job.posts });
+  } else if (job.status === "error") {
+    generationJobs.delete(jobId);
+    res.json({ status: "error", error: job.error });
+  } else {
+    res.json({ status: "processing" });
   }
 });
 

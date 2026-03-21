@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout";
 import { 
   useGetCampaign, 
@@ -13,7 +13,8 @@ import {
   useRemoveCampaignSocialAccount,
   useGenerateCampaignPosts,
   useListGeneratedPosts,
-  getGetCampaignQueryKey
+  getGetCampaignQueryKey,
+  getGeneratePostsStatus,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
@@ -125,20 +126,56 @@ export default function CampaignDetail() {
 
   const [showPostWarning, setShowPostWarning] = useState(false);
   const [estimatedPostCount, setEstimatedPostCount] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const doGenerate = () => {
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
+  const doGenerate = useCallback(() => {
+    setIsGenerating(true);
     generatePostsMut.mutate({ id }, {
-      onSuccess: (data) => {
-        setGeneratedPosts(data);
-        setActiveTab("previews");
-        toast({ title: "Posts generated successfully" });
+      onSuccess: (data: any) => {
+        const jobId = data?.jobId;
+        if (!jobId) {
+          setIsGenerating(false);
+          toast({ title: "Generation failed", description: "No job ID returned", variant: "destructive" });
+          return;
+        }
+        pollingRef.current = setInterval(async () => {
+          try {
+            const status = await getGeneratePostsStatus(id, { jobId });
+            if (status.status === "complete") {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              setIsGenerating(false);
+              setGeneratedPosts(status.posts || []);
+              setActiveTab("previews");
+              toast({ title: "Posts generated successfully" });
+            } else if (status.status === "error") {
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              setIsGenerating(false);
+              toast({ title: "Generation failed", description: status.error || "Unknown error", variant: "destructive" });
+            }
+          } catch {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setIsGenerating(false);
+            toast({ title: "Generation failed", description: "Lost connection to server", variant: "destructive" });
+          }
+        }, 2000);
       },
       onError: (err: any) => {
+        setIsGenerating(false);
         const description = err.data?.error || err.message || "Something went wrong";
         toast({ title: "Generation failed", description, variant: "destructive" });
       }
     });
-  };
+  }, [id, generatePostsMut, toast]);
 
   const handleGenerate = () => {
     if (!campaign) return;
@@ -216,8 +253,8 @@ export default function CampaignDetail() {
               >
                 {['draft', 'scheduled', 'active', 'paused', 'completed'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <Button onClick={handleGenerate} disabled={generatePostsMut.isPending} className="h-11 rounded-xl bg-gradient-to-r from-accent to-primary text-white shadow-lg shadow-primary/20 hover:shadow-primary/40">
-                {generatePostsMut.isPending ? (
+              <Button onClick={handleGenerate} disabled={isGenerating} className="h-11 rounded-xl bg-gradient-to-r from-accent to-primary text-white shadow-lg shadow-primary/20 hover:shadow-primary/40">
+                {isGenerating ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
                 ) : (
                   <><Wand2 className="w-4 h-4 mr-2" /> Generate Posts</>
@@ -351,7 +388,7 @@ export default function CampaignDetail() {
                 )}
               </div>
               
-              {generatePostsMut.isPending && (
+              {isGenerating && (
                 <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   <div>
@@ -361,7 +398,7 @@ export default function CampaignDetail() {
                 </div>
               )}
 
-              {!generatePostsMut.isPending && posts.length === 0 ? (
+              {!isGenerating && posts.length === 0 ? (
                 <div className="text-center py-16 border-2 border-dashed rounded-2xl bg-secondary/10">
                   <p className="text-muted-foreground mb-4">Click 'Generate Posts' to preview the campaign schedule.</p>
                   <Button onClick={handleGenerate} variant="secondary">Generate Now</Button>

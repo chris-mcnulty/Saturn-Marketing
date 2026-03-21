@@ -730,7 +730,7 @@ paths:
     post:
       operationId: generateCampaignPosts
       tags: [csv]
-      summary: Generate posts for a campaign
+      summary: Generate posts for a campaign (async)
       parameters:
         - name: id
           in: path
@@ -738,14 +738,53 @@ paths:
           schema:
             type: integer
       responses:
-        "200":
-          description: Generated posts
+        "202":
+          description: Generation job started
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/GeneratedPost"
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                required:
+                  - jobId
+
+  /campaigns/{id}/generate-posts-status:
+    get:
+      operationId: getGeneratePostsStatus
+      tags: [csv]
+      summary: Poll for post generation job status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: jobId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [processing, complete, error]
+                  posts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GeneratedPost"
+                  error:
+                    type: string
+                required:
+                  - status
 
   /campaigns/{id}/export-csv:
     post:
