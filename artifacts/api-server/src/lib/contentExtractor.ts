@@ -97,13 +97,15 @@ export async function extractContent(assetId: number): Promise<void> {
         const basePrompt = `You are a social media marketing expert writing post captions that will be published directly to social media platforms.
 
 IMPORTANT RULES:
-- Write 1-2 concise, engaging sentences that read as a standalone social media post.
+- Write 3-5 engaging sentences (roughly 150-250 words) that read as a standalone social media post.
+- Open with a hook that grabs attention — a bold statement, question, or surprising insight.
+- Expand on the VALUE or KEY TAKEAWAY of the content — explain WHY it matters and what the audience can learn or gain.
 - The caption must make sense on its own without any additional context.
 - Do NOT include navigation text, page section headers, download links, file sizes, or website UI elements.
 - Do NOT include hashtags — those are added separately.
 - Do NOT start with the company or brand name unless it's essential to the message.
-- Focus on the VALUE or KEY TAKEAWAY of the content — what would make someone want to click or engage.
 - Write in an active, conversational tone appropriate for LinkedIn, Twitter/X, or Facebook.
+- Use line breaks between thoughts for readability.
 - Output ONLY the caption text — no labels, no quotes, no preamble.`;
         const systemPromptParts = [basePrompt];
         if (groundingContext) {

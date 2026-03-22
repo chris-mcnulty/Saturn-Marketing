@@ -112,7 +112,7 @@ async function generateHashtags(
 async function generateVariation(originalText: string, groundingContext: string, hasTwitter: boolean = false): Promise<string> {
   try {
     const systemPromptParts = [
-      "You are a social media marketing expert. Rewrite the following social media post with different wording while keeping the same core message. Make it sound fresh and engaging. Return only the rewritten post text, nothing else.",
+      "You are a social media marketing expert. Rewrite the following social media post with different wording while keeping the same core message and similar length (3-5 sentences, roughly 150-250 words). Make it sound fresh and engaging — try a different hook, angle, or tone. Use line breaks between thoughts for readability. Return only the rewritten post text, nothing else.",
     ];
     if (hasTwitter) {
       systemPromptParts.push("IMPORTANT: This post will be published on Twitter/X. The ENTIRE post including hashtags and URL MUST be 280 characters or fewer. Keep the message concise.");
