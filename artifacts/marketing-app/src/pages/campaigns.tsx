@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout";
 import { 
   useListCampaigns, 
   useCreateCampaign,
+  useDeleteCampaign,
   getListCampaignsQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,11 +41,13 @@ const createSchema = z.object({
 
 export default function Campaigns() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: campaigns, isLoading } = useListCampaigns();
   const createMutation = useCreateCampaign();
+  const deleteMutation = useDeleteCampaign();
 
   const [postingTimeSlots, setPostingTimeSlots] = useState<string[]>(["09:00", "15:00"]);
 
@@ -157,9 +160,22 @@ export default function Campaigns() {
                       )}
                     </div>
                   </div>
-                  <div className="bg-secondary/30 px-6 py-3 border-t border-border/50 text-xs font-medium text-muted-foreground flex justify-between">
+                  <div className="bg-secondary/30 px-6 py-3 border-t border-border/50 text-xs font-medium text-muted-foreground flex justify-between items-center">
                     <span>ID: {campaign.id}</span>
-                    <span>Updated {format(new Date(campaign.updatedAt), "MMM d")}</span>
+                    <div className="flex items-center gap-3">
+                      <span>Updated {format(new Date(campaign.updatedAt), "MMM d")}</span>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeleteTarget({ id: campaign.id, name: campaign.name });
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1 -mr-1"
+                        title="Delete campaign"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </Card>
               </Link>
@@ -313,6 +329,44 @@ export default function Campaigns() {
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
+
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Campaign</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <span className="font-semibold text-foreground">{deleteTarget?.name}</span>? This will permanently remove the campaign and all its generated posts. This action cannot be undone.
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteTarget(null)} className="rounded-xl">Cancel</Button>
+              <Button
+                variant="destructive"
+                className="rounded-xl"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  if (!deleteTarget) return;
+                  deleteMutation.mutate(
+                    { id: deleteTarget.id },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
+                        toast({ title: "Campaign deleted" });
+                        setDeleteTarget(null);
+                      },
+                      onError: () => {
+                        toast({ title: "Failed to delete campaign", variant: "destructive" });
+                      },
+                    },
+                  );
+                }}
+              >
+                {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Trash2 className="w-4 h-4 mr-2" /> Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

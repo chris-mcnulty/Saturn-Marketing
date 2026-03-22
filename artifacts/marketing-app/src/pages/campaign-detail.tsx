@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout";
 import { 
   useGetCampaign, 
   useUpdateCampaign, 
+  useDeleteCampaign,
   useAddCampaignAsset,
   useRemoveCampaignAsset,
   useUpdateCampaignAsset,
@@ -14,10 +15,11 @@ import {
   useGenerateCampaignPosts,
   useListGeneratedPosts,
   getGetCampaignQueryKey,
+  getListCampaignsQueryKey,
   getGeneratePostsStatus,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,8 +37,11 @@ export default function CampaignDetail() {
   const id = parseInt(params?.id || "0");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const { data: campaign, isLoading } = useGetCampaign(id);
+  const deleteCampaignMut = useDeleteCampaign();
   const { data: allAssets } = useListAssets();
   const { data: categories } = useListCategories();
   const { data: allAccounts } = useListSocialAccounts();
@@ -333,6 +338,13 @@ export default function CampaignDetail() {
                 ) : (
                   <><Wand2 className="w-4 h-4 mr-2" /> Generate Posts</>
                 )}
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 rounded-xl text-destructive hover:bg-destructive/10 border-destructive/30"
+                onClick={() => setIsDeleteOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Delete
               </Button>
             </div>
           </div>
@@ -750,6 +762,43 @@ export default function CampaignDetail() {
               <Button variant="outline" onClick={() => setShowPostWarning(false)}>Cancel</Button>
               <Button onClick={() => { setShowPostWarning(false); doGenerate(); }}>
                 Generate First 500
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Campaign</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete <span className="font-semibold text-foreground">{campaign.name}</span>? This will permanently remove the campaign, all linked assets, social accounts, and generated posts. This action cannot be undone.
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="rounded-xl">Cancel</Button>
+              <Button
+                variant="destructive"
+                className="rounded-xl"
+                disabled={deleteCampaignMut.isPending}
+                onClick={() => {
+                  deleteCampaignMut.mutate(
+                    { id },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: getListCampaignsQueryKey() });
+                        toast({ title: "Campaign deleted" });
+                        setLocation("/campaigns");
+                      },
+                      onError: () => {
+                        toast({ title: "Failed to delete campaign", variant: "destructive" });
+                      },
+                    },
+                  );
+                }}
+              >
+                {deleteCampaignMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Trash2 className="w-4 h-4 mr-2" /> Delete Campaign
               </Button>
             </DialogFooter>
           </DialogContent>
