@@ -675,6 +675,18 @@ export type ListAssetsParams = {
   market_id?: number;
 };
 
+export type GetAssetProductTags200 = {
+  productTagIds: number[];
+};
+
+export type SetAssetProductTagsBody = {
+  productTagIds?: number[];
+};
+
+export type SetAssetProductTags200 = {
+  success: boolean;
+};
+
 export type ListBrandAssetCategoriesParams = {
   market_id?: number;
 };
@@ -703,6 +715,18 @@ export type DeleteMarket200 = {
 
 export type ListBrandAssetsParams = {
   market_id?: number;
+};
+
+export type GetBrandAssetProductTags200 = {
+  productTagIds: number[];
+};
+
+export type SetBrandAssetProductTagsBody = {
+  productTagIds?: number[];
+};
+
+export type SetBrandAssetProductTags200 = {
+  success: boolean;
 };
 
 export type ListCampaignsParams = {

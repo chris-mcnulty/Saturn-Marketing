@@ -325,6 +325,65 @@ paths:
         "204":
           description: Asset deleted
 
+  /assets/{id}/product-tags:
+    get:
+      operationId: getAssetProductTags
+      tags: [assets]
+      summary: Get product tags assigned to an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product tag IDs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productTagIds:
+                    type: array
+                    items:
+                      type: integer
+                required:
+                  - productTagIds
+    put:
+      operationId: setAssetProductTags
+      tags: [assets]
+      summary: Set product tags for an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productTagIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "200":
+          description: Assignments updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+
   /assets/{id}/extract:
     post:
       operationId: extractAssetContent
@@ -810,6 +869,65 @@ paths:
       responses:
         "204":
           description: Brand asset deleted
+
+  /brand-assets/{id}/product-tags:
+    get:
+      operationId: getBrandAssetProductTags
+      tags: [brandAssets]
+      summary: Get product tags assigned to a brand asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product tag IDs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productTagIds:
+                    type: array
+                    items:
+                      type: integer
+                required:
+                  - productTagIds
+    put:
+      operationId: setBrandAssetProductTags
+      tags: [brandAssets]
+      summary: Set product tags for a brand asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productTagIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "200":
+          description: Assignments updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
 
   /campaigns:
     get:

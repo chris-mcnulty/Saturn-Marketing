@@ -278,6 +278,32 @@ export const DeleteAssetParams = zod.object({
 });
 
 /**
+ * @summary Get product tags assigned to an asset
+ */
+export const GetAssetProductTagsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAssetProductTagsResponse = zod.object({
+  productTagIds: zod.array(zod.number()),
+});
+
+/**
+ * @summary Set product tags for an asset
+ */
+export const SetAssetProductTagsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetAssetProductTagsBody = zod.object({
+  productTagIds: zod.array(zod.number()).optional(),
+});
+
+export const SetAssetProductTagsResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
  * @summary Run content extraction on an asset
  */
 export const ExtractAssetContentParams = zod.object({
@@ -640,6 +666,32 @@ export const UpdateBrandAssetResponse = zod.object({
  */
 export const DeleteBrandAssetParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get product tags assigned to a brand asset
+ */
+export const GetBrandAssetProductTagsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetBrandAssetProductTagsResponse = zod.object({
+  productTagIds: zod.array(zod.number()),
+});
+
+/**
+ * @summary Set product tags for a brand asset
+ */
+export const SetBrandAssetProductTagsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetBrandAssetProductTagsBody = zod.object({
+  productTagIds: zod.array(zod.number()).optional(),
+});
+
+export const SetBrandAssetProductTagsResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

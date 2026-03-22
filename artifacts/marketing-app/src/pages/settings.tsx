@@ -10,8 +10,13 @@ import {
   useCreateBrandAssetCategory,
   useUpdateBrandAssetCategory,
   useDeleteBrandAssetCategory,
+  useListProductTags,
+  useCreateProductTag,
+  useUpdateProductTag,
+  useDeleteProductTag,
   getListCategoriesQueryKey,
   getListBrandAssetCategoriesQueryKey,
+  getListProductTagsQueryKey,
   getGetTenantQueryKey,
   useListTenantUsers
 } from "@workspace/api-client-react";
@@ -31,6 +36,7 @@ export default function Settings() {
   const { data: tenant } = useGetTenant();
   const { data: categories } = useListCategories();
   const { data: brandAssetCategories } = useListBrandAssetCategories();
+  const { data: productTags } = useListProductTags();
   const { data: users } = useListTenantUsers();
 
   const updateTenantMut = useUpdateTenant();
@@ -39,12 +45,18 @@ export default function Settings() {
   const createBrandCatMut = useCreateBrandAssetCategory();
   const updateBrandCatMut = useUpdateBrandAssetCategory();
   const deleteBrandCatMut = useDeleteBrandAssetCategory();
+  const createProductTagMut = useCreateProductTag();
+  const updateProductTagMut = useUpdateProductTag();
+  const deleteProductTagMut = useDeleteProductTag();
 
   const [tenantName, setTenantName] = useState(tenant?.name || "");
   const [newCatName, setNewCatName] = useState("");
   const [newBrandCatName, setNewBrandCatName] = useState("");
   const [editingBrandCatId, setEditingBrandCatId] = useState<number | null>(null);
   const [editingBrandCatName, setEditingBrandCatName] = useState("");
+  const [newProductTagName, setNewProductTagName] = useState("");
+  const [editingProductTagId, setEditingProductTagId] = useState<number | null>(null);
+  const [editingProductTagName, setEditingProductTagName] = useState("");
 
   const handleUpdateTenant = () => {
     updateTenantMut.mutate({ data: { name: tenantName } }, {
@@ -82,6 +94,27 @@ export default function Settings() {
         queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() });
         setEditingBrandCatId(null);
         setEditingBrandCatName("");
+      }
+    });
+  };
+
+  const handleCreateProductTag = () => {
+    if (!newProductTagName.trim()) return;
+    createProductTagMut.mutate({ data: { name: newProductTagName.trim() } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProductTagsQueryKey() });
+        setNewProductTagName("");
+      }
+    });
+  };
+
+  const handleRenameProductTag = (id: number) => {
+    if (!editingProductTagName.trim()) return;
+    updateProductTagMut.mutate({ id, data: { name: editingProductTagName.trim() } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListProductTagsQueryKey() });
+        setEditingProductTagId(null);
+        setEditingProductTagName("");
       }
     });
   };
@@ -234,6 +267,67 @@ export default function Settings() {
                       <button onClick={() => {
                         deleteBrandCatMut.mutate({ id: cat.id }, {
                           onSuccess: () => queryClient.invalidateQueries({ queryKey: getListBrandAssetCategoriesQueryKey() })
+                        })
+                      }} className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border-border/50">
+          <CardHeader>
+            <CardTitle className="font-display">Product Tags</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-6">
+              <Input 
+                value={newProductTagName} 
+                onChange={(e) => setNewProductTagName(e.target.value)} 
+                placeholder="New Product Tag Name" 
+                className="rounded-xl h-11 max-w-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleCreateProductTag()}
+              />
+              <Button onClick={handleCreateProductTag} disabled={createProductTagMut.isPending || !newProductTagName.trim()} variant="secondary" className="h-11 rounded-xl">
+                Add
+              </Button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {productTags?.map(tag => (
+                <div key={tag.id} className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-lg text-sm font-medium">
+                  {editingProductTagId === tag.id ? (
+                    <>
+                      <Input
+                        value={editingProductTagName}
+                        onChange={(e) => setEditingProductTagName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenameProductTag(tag.id);
+                          if (e.key === "Escape") { setEditingProductTagId(null); setEditingProductTagName(""); }
+                        }}
+                        className="h-6 w-28 text-sm rounded px-1"
+                        autoFocus
+                      />
+                      <button onClick={() => handleRenameProductTag(tag.id)} className="text-muted-foreground hover:text-primary">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => { setEditingProductTagId(null); setEditingProductTagName(""); }} className="text-muted-foreground hover:text-destructive">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {tag.name}
+                      <button onClick={() => { setEditingProductTagId(tag.id); setEditingProductTagName(tag.name); }} className="text-muted-foreground hover:text-primary">
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => {
+                        deleteProductTagMut.mutate({ id: tag.id }, {
+                          onSuccess: () => queryClient.invalidateQueries({ queryKey: getListProductTagsQueryKey() })
                         })
                       }} className="text-muted-foreground hover:text-destructive">
                         <Trash2 className="w-3.5 h-3.5" />

@@ -9,10 +9,15 @@ import {
   useCreateBrandAssetCategory,
   useUpdateBrandAssetCategory,
   useDeleteBrandAssetCategory,
+  useListProductTags,
+  useGetBrandAssetProductTags,
+  useSetBrandAssetProductTags,
   getListBrandAssetsQueryKey,
-  getListBrandAssetCategoriesQueryKey
+  getListBrandAssetCategoriesQueryKey,
+  getGetBrandAssetProductTagsQueryKey,
+  getGetBrandAssetProductTagsQueryOptions,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQueries } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Image as ImageIcon, Trash2, Pencil, Settings2, X, Search } from "lucide-react";
+import { Loader2, Plus, Image as ImageIcon, Trash2, Pencil, Settings2, X, Search, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 
 const createSchema = z.object({
@@ -36,23 +41,61 @@ const createSchema = z.object({
 
 export default function BrandAssets() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingAsset, setEditingAsset] = useState<{id: number; imageUrl: string; title: string; description: string; tags: string; categoryId: string} | null>(null);
+  const [editingAsset, setEditingAsset] = useState<{id: number; imageUrl: string; title: string; description: string; tags: string; categoryId: string; productTagIds: number[]} | null>(null);
   const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState<{id: number; name: string} | null>(null);
+  const [createProductTagIds, setCreateProductTagIds] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: assets, isLoading } = useListBrandAssets();
   const { data: brandCategories } = useListBrandAssetCategories();
+  const { data: productTags } = useListProductTags();
+  const { data: editingAssetProductTags, isLoading: isEditTagsLoading } = useGetBrandAssetProductTags(
+    editingAsset?.id || 0,
+    { query: { enabled: !!editingAsset } }
+  );
+
+  const brandAssetTagQueries = useQueries({
+    queries: (assets || []).map(asset => ({
+      ...getGetBrandAssetProductTagsQueryOptions(asset.id),
+      enabled: !!assets && assets.length > 0,
+      staleTime: 30000,
+    })),
+  });
+
+  const productTagMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (productTags) {
+      for (const tag of productTags) {
+        map.set(tag.id, tag.name);
+      }
+    }
+    return map;
+  }, [productTags]);
+
+  const brandAssetProductTagsMap = useMemo(() => {
+    const map = new Map<number, number[]>();
+    if (assets) {
+      assets.forEach((asset, i) => {
+        const q = brandAssetTagQueries[i];
+        if (q?.data?.productTagIds) {
+          map.set(asset.id, q.data.productTagIds);
+        }
+      });
+    }
+    return map;
+  }, [assets, brandAssetTagQueries]);
   const createMutation = useCreateBrandAsset();
   const updateMutation = useUpdateBrandAsset();
   const deleteMutation = useDeleteBrandAsset();
   const createCategoryMutation = useCreateBrandAssetCategory();
   const updateCategoryMutation = useUpdateBrandAssetCategory();
   const deleteCategoryMutation = useDeleteBrandAssetCategory();
+  const setBrandAssetProductTagsMut = useSetBrandAssetProductTags();
 
   const form = useForm<z.infer<typeof createSchema>>({
     resolver: zodResolver(createSchema),
@@ -110,10 +153,22 @@ export default function BrandAssets() {
       tags: data.tags || undefined,
       ...(categoryIdNum ? { categoryId: categoryIdNum } : {}),
     } }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+      onSuccess: (newAsset) => {
+        if (createProductTagIds.length > 0) {
+          setBrandAssetProductTagsMut.mutate(
+            { id: newAsset.id, data: { productTagIds: createProductTagIds } },
+            {
+              onSettled: () => {
+                queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+              },
+            }
+          );
+        } else {
+          queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+        }
         setIsCreateOpen(false);
         form.reset();
+        setCreateProductTagIds([]);
         toast({ title: "Brand asset added" });
       },
       onError: () => {
@@ -122,7 +177,11 @@ export default function BrandAssets() {
     });
   };
 
+  const [editTagsLoaded, setEditTagsLoaded] = useState(false);
+
   const handleStartEdit = (asset: typeof filteredAssets[0]) => {
+    setEditTagsLoaded(false);
+    const cachedTags = brandAssetProductTagsMap.get(asset.id);
     setEditingAsset({
       id: asset.id,
       imageUrl: asset.imageUrl,
@@ -130,14 +189,27 @@ export default function BrandAssets() {
       description: asset.description || "",
       tags: asset.tags || "",
       categoryId: asset.categoryId ? String(asset.categoryId) : "none",
+      productTagIds: cachedTags || [],
     });
+    if (cachedTags) {
+      setEditTagsLoaded(true);
+    }
   };
+
+  React.useEffect(() => {
+    if (editingAsset && editingAssetProductTags) {
+      setEditingAsset(prev => prev ? { ...prev, productTagIds: editingAssetProductTags.productTagIds || [] } : null);
+      setEditTagsLoaded(true);
+    }
+  }, [editingAssetProductTags]);
 
   const handleEditSubmit = () => {
     if (!editingAsset) return;
     const categoryIdNum = editingAsset.categoryId && editingAsset.categoryId !== "none" ? Number(editingAsset.categoryId) : null;
+    const assetId = editingAsset.id;
+    const tagIdsToSave = editingAsset.productTagIds;
     updateMutation.mutate({
-      id: editingAsset.id,
+      id: assetId,
       data: {
         imageUrl: editingAsset.imageUrl,
         title: editingAsset.title || null,
@@ -147,9 +219,21 @@ export default function BrandAssets() {
       }
     }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+        setBrandAssetProductTagsMut.mutate(
+          { id: assetId, data: { productTagIds: tagIdsToSave } },
+          {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+              queryClient.invalidateQueries({ queryKey: getGetBrandAssetProductTagsQueryKey(assetId) });
+              toast({ title: "Brand asset updated" });
+            },
+            onError: () => {
+              queryClient.invalidateQueries({ queryKey: getListBrandAssetsQueryKey() });
+              toast({ title: "Asset saved but product tag assignment failed", variant: "destructive" });
+            },
+          }
+        );
         setEditingAsset(null);
-        toast({ title: "Brand asset updated" });
       },
       onError: () => {
         toast({ title: "Failed to update asset", variant: "destructive" });
@@ -312,7 +396,7 @@ export default function BrandAssets() {
                       </div>
                     </div>
                     {asset.tags && (
-                      <div className="flex gap-1 mt-3 overflow-x-auto pb-1">
+                      <div className="flex gap-1 mt-3 overflow-x-auto pb-1 flex-wrap">
                         {asset.tags.split(',').map(tag => (
                           <span key={tag} className="px-2 py-0.5 rounded-md bg-secondary text-[10px] font-medium text-secondary-foreground whitespace-nowrap">
                             {tag.trim()}
@@ -320,6 +404,23 @@ export default function BrandAssets() {
                         ))}
                       </div>
                     )}
+                    {(() => {
+                      const tagIds = brandAssetProductTagsMap.get(asset.id);
+                      if (!tagIds || tagIds.length === 0) return null;
+                      return (
+                        <div className="flex gap-1 mt-2 overflow-x-auto pb-1 flex-wrap">
+                          {tagIds.map(tid => {
+                            const name = productTagMap.get(tid);
+                            if (!name) return null;
+                            return (
+                              <span key={tid} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-[10px] font-medium text-primary whitespace-nowrap">
+                                <Tag className="w-2.5 h-2.5" />{name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </Card>
               </motion.div>
@@ -382,9 +483,36 @@ export default function BrandAssets() {
                         </FormItem>
                       )} />
                     )}
+                    {productTags && productTags.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium mb-1.5 block">Product Tags</label>
+                        <div className="border rounded-xl divide-y max-h-40 overflow-y-auto">
+                          {productTags.map(tag => (
+                            <label
+                              key={tag.id}
+                              className="flex items-center gap-3 px-3 py-2 hover:bg-accent cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={createProductTagIds.includes(tag.id)}
+                                onChange={() => {
+                                  setCreateProductTagIds(prev =>
+                                    prev.includes(tag.id)
+                                      ? prev.filter(id => id !== tag.id)
+                                      : [...prev, tag.id]
+                                  );
+                                }}
+                                className="rounded border-muted-foreground"
+                              />
+                              <span className="text-sm">{tag.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end gap-3">
-                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="rounded-xl">Cancel</Button>
+                    <Button type="button" variant="outline" onClick={() => { setIsCreateOpen(false); setCreateProductTagIds([]); }} className="rounded-xl">Cancel</Button>
                     <Button type="submit" disabled={createMutation.isPending} className="rounded-xl bg-primary text-primary-foreground">
                       {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save
                     </Button>
@@ -436,11 +564,39 @@ export default function BrandAssets() {
                         </Select>
                       </div>
                     )}
+                    {productTags && productTags.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium mb-1.5 block">Product Tags</label>
+                        <div className="border rounded-xl divide-y max-h-40 overflow-y-auto">
+                          {productTags.map(tag => (
+                            <label
+                              key={tag.id}
+                              className="flex items-center gap-3 px-3 py-2 hover:bg-accent cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={editingAsset.productTagIds.includes(tag.id)}
+                                onChange={() => {
+                                  setEditingAsset({
+                                    ...editingAsset,
+                                    productTagIds: editingAsset.productTagIds.includes(tag.id)
+                                      ? editingAsset.productTagIds.filter(id => id !== tag.id)
+                                      : [...editingAsset.productTagIds, tag.id]
+                                  });
+                                }}
+                                className="rounded border-muted-foreground"
+                              />
+                              <span className="text-sm">{tag.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end gap-3">
                     <Button type="button" variant="outline" onClick={() => setEditingAsset(null)} className="rounded-xl">Cancel</Button>
-                    <Button onClick={handleEditSubmit} disabled={updateMutation.isPending} className="rounded-xl bg-primary text-primary-foreground">
-                      {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Changes
+                    <Button onClick={handleEditSubmit} disabled={updateMutation.isPending || (!!productTags?.length && !editTagsLoaded)} className="rounded-xl bg-primary text-primary-foreground">
+                      {(updateMutation.isPending || (!!productTags?.length && !editTagsLoaded)) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Changes
                     </Button>
                   </div>
                 </div>

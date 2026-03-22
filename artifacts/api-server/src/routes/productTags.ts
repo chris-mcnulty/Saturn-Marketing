@@ -13,6 +13,16 @@ import {
 import { requireAuth } from "../middlewares/auth";
 import { validateMarketOwnership } from "../lib/validateMarket";
 
+function parseProductTagIds(body: any): { success: true; data: number[] } | { success: false } {
+  const raw = body?.productTagIds;
+  if (raw === undefined || raw === null) return { success: true, data: [] };
+  if (!Array.isArray(raw)) return { success: false };
+  for (const v of raw) {
+    if (typeof v !== "number" || !Number.isInteger(v) || v < 1) return { success: false };
+  }
+  return { success: true, data: raw as number[] };
+}
+
 const router: IRouter = Router();
 
 router.get("/product-tags", requireAuth, async (req, res): Promise<void> => {
@@ -192,6 +202,142 @@ router.put("/product-tags/:id/assets", requireAuth, async (req, res): Promise<vo
           brandAssetId,
           productTagId: params.data.id,
         }))
+      );
+    }
+  });
+
+  res.json({ success: true });
+});
+
+router.get("/assets/:id/product-tags", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid asset ID" });
+    return;
+  }
+
+  const [asset] = await db.select({ id: assetsTable.id }).from(assetsTable)
+    .where(and(eq(assetsTable.id, id), eq(assetsTable.tenantId, req.tenantId!)));
+
+  if (!asset) {
+    res.status(404).json({ error: "Asset not found" });
+    return;
+  }
+
+  const links = await db.select({ productTagId: assetProductTagsTable.productTagId })
+    .from(assetProductTagsTable)
+    .where(eq(assetProductTagsTable.assetId, id));
+
+  res.json({ productTagIds: links.map(l => l.productTagId) });
+});
+
+router.put("/assets/:id/product-tags", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid asset ID" });
+    return;
+  }
+
+  const parsed = parseProductTagIds(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "productTagIds must be an array of positive integers" });
+    return;
+  }
+
+  const productTagIds: number[] = [...new Set<number>(parsed.data)];
+
+  const [asset] = await db.select({ id: assetsTable.id }).from(assetsTable)
+    .where(and(eq(assetsTable.id, id), eq(assetsTable.tenantId, req.tenantId!)));
+
+  if (!asset) {
+    res.status(404).json({ error: "Asset not found" });
+    return;
+  }
+
+  if (productTagIds.length > 0) {
+    const ownedTags = await db.select({ id: productTagsTable.id }).from(productTagsTable)
+      .where(and(eq(productTagsTable.tenantId, req.tenantId!), inArray(productTagsTable.id, productTagIds)));
+    if (ownedTags.length !== productTagIds.length) {
+      res.status(400).json({ error: "One or more product tag IDs are invalid" });
+      return;
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(assetProductTagsTable)
+      .where(eq(assetProductTagsTable.assetId, id));
+
+    if (productTagIds.length > 0) {
+      await tx.insert(assetProductTagsTable).values(
+        productTagIds.map(productTagId => ({ assetId: id, productTagId }))
+      );
+    }
+  });
+
+  res.json({ success: true });
+});
+
+router.get("/brand-assets/:id/product-tags", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid brand asset ID" });
+    return;
+  }
+
+  const [brandAsset] = await db.select({ id: brandAssetsTable.id }).from(brandAssetsTable)
+    .where(and(eq(brandAssetsTable.id, id), eq(brandAssetsTable.tenantId, req.tenantId!)));
+
+  if (!brandAsset) {
+    res.status(404).json({ error: "Brand asset not found" });
+    return;
+  }
+
+  const links = await db.select({ productTagId: brandAssetProductTagsTable.productTagId })
+    .from(brandAssetProductTagsTable)
+    .where(eq(brandAssetProductTagsTable.brandAssetId, id));
+
+  res.json({ productTagIds: links.map(l => l.productTagId) });
+});
+
+router.put("/brand-assets/:id/product-tags", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid brand asset ID" });
+    return;
+  }
+
+  const parsed = parseProductTagIds(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "productTagIds must be an array of positive integers" });
+    return;
+  }
+
+  const productTagIds: number[] = [...new Set<number>(parsed.data)];
+
+  const [brandAsset] = await db.select({ id: brandAssetsTable.id }).from(brandAssetsTable)
+    .where(and(eq(brandAssetsTable.id, id), eq(brandAssetsTable.tenantId, req.tenantId!)));
+
+  if (!brandAsset) {
+    res.status(404).json({ error: "Brand asset not found" });
+    return;
+  }
+
+  if (productTagIds.length > 0) {
+    const ownedTags = await db.select({ id: productTagsTable.id }).from(productTagsTable)
+      .where(and(eq(productTagsTable.tenantId, req.tenantId!), inArray(productTagsTable.id, productTagIds)));
+    if (ownedTags.length !== productTagIds.length) {
+      res.status(400).json({ error: "One or more product tag IDs are invalid" });
+      return;
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(brandAssetProductTagsTable)
+      .where(eq(brandAssetProductTagsTable.brandAssetId, id));
+
+    if (productTagIds.length > 0) {
+      await tx.insert(brandAssetProductTagsTable).values(
+        productTagIds.map(productTagId => ({ brandAssetId: id, productTagId }))
       );
     }
   });

@@ -10,7 +10,11 @@ import {
   useListSocialAccounts,
   useAddCampaignSocialAccount,
   useGenerateCampaignPosts,
+  useListProductTags,
+  useGetAssetProductTags,
+  useSetAssetProductTags,
   getGetAssetQueryKey,
+  getGetAssetProductTagsQueryKey,
   getListAssetsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -103,6 +107,11 @@ export default function AssetDetail() {
     query: { enabled: isValidId },
   });
   const { data: categories } = useListCategories();
+  const { data: productTags } = useListProductTags();
+  const { data: assetProductTags, isLoading: isAssetTagsLoading } = useGetAssetProductTags(id, {
+    query: { enabled: isValidId },
+  });
+  const setAssetProductTagsMut = useSetAssetProductTags();
   const updateMutation = useUpdateAsset();
   const extractMutation = useExtractAssetContent();
   const createCampaignMut = useCreateCampaign();
@@ -220,6 +229,24 @@ export default function AssetDetail() {
         },
         onError: () => {
           toast({ title: "Extraction failed", variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleToggleProductTag = (tagId: number) => {
+    const currentIds = assetProductTags?.productTagIds || [];
+    const newIds = currentIds.includes(tagId)
+      ? currentIds.filter(id => id !== tagId)
+      : [...currentIds, tagId];
+    setAssetProductTagsMut.mutate(
+      { id, data: { productTagIds: newIds } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetAssetProductTagsQueryKey(id) });
+        },
+        onError: () => {
+          toast({ title: "Failed to update product tags", variant: "destructive" });
         },
       }
     );
@@ -678,6 +705,53 @@ export default function AssetDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {productTags && productTags.length > 0 && (
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-display">Product Tags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isAssetTagsLoading && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Loading assignments...
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    {productTags.map(tag => {
+                      const isAssigned = assetProductTags?.productTagIds?.includes(tag.id) || false;
+                      return (
+                        <label
+                          key={tag.id}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-accent cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isAssigned}
+                            onChange={() => handleToggleProductTag(tag.id)}
+                            disabled={setAssetProductTagsMut.isPending || isAssetTagsLoading}
+                            className="rounded border-muted-foreground"
+                          />
+                          <span className="text-sm font-medium">{tag.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {assetProductTags?.productTagIds && assetProductTags.productTagIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/50">
+                      {assetProductTags.productTagIds.map(tagId => {
+                        const tag = productTags.find(t => t.id === tagId);
+                        return tag ? (
+                          <span key={tagId} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                            {tag.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="rounded-2xl border-border/50 shadow-sm">
               <CardHeader>
