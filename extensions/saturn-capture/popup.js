@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTabs();
   setupButtons();
   loadLists();
+  loadConnectionStatus();
 });
 
 function setupTabs() {
@@ -30,11 +31,195 @@ function setupButtons() {
   document.getElementById("edit-cancel").addEventListener("click", closeEdit);
   document.getElementById("edit-save").addEventListener("click", saveEdit);
 
+  document.getElementById("send-content").addEventListener("click", () => sendToSaturn("content"));
+  document.getElementById("send-images").addEventListener("click", () => sendToSaturn("images"));
+  document.getElementById("settings-connect").addEventListener("click", connectToSaturn);
+  document.getElementById("settings-disconnect").addEventListener("click", disconnectFromSaturn);
+
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.imageAssets || changes.contentAssets) {
       loadLists();
     }
   });
+}
+
+async function loadConnectionStatus() {
+  const { saturnToken, saturnUrl, saturnUserName, saturnEmail } =
+    await chrome.storage.local.get(["saturnToken", "saturnUrl", "saturnUserName", "saturnEmail"]);
+
+  const bar = document.getElementById("connection-bar");
+  const dot = document.getElementById("connection-dot");
+  const text = document.getElementById("connection-text");
+
+  bar.style.display = "flex";
+
+  if (saturnToken && saturnUrl) {
+    dot.classList.add("connected");
+    text.textContent = `Connected as ${saturnUserName || saturnEmail}`;
+    showConnectedSettings(saturnUserName, saturnEmail, saturnUrl);
+    updateSendButtons(true);
+  } else {
+    dot.classList.remove("connected");
+    text.textContent = "Not connected — set up in Settings";
+    showLoginSettings();
+    updateSendButtons(false);
+  }
+}
+
+function updateSendButtons(connected) {
+  const sendContent = document.getElementById("send-content");
+  const sendImages = document.getElementById("send-images");
+  sendContent.disabled = !connected;
+  sendImages.disabled = !connected;
+  if (!connected) {
+    sendContent.title = "Connect to Saturn in Settings first";
+    sendImages.title = "Connect to Saturn in Settings first";
+  } else {
+    sendContent.title = "";
+    sendImages.title = "";
+  }
+}
+
+function showConnectedSettings(name, email, url) {
+  document.getElementById("settings-login-form").style.display = "none";
+  document.getElementById("settings-connected").style.display = "block";
+  document.getElementById("connected-name").textContent = name || "Saturn User";
+  document.getElementById("connected-email").textContent = email || "";
+  document.getElementById("connected-url").textContent = url || "";
+}
+
+function showLoginSettings() {
+  document.getElementById("settings-login-form").style.display = "block";
+  document.getElementById("settings-connected").style.display = "none";
+}
+
+async function connectToSaturn() {
+  const urlInput = document.getElementById("settings-url");
+  const emailInput = document.getElementById("settings-email");
+  const passwordInput = document.getElementById("settings-password");
+  const errorEl = document.getElementById("settings-error");
+  const connectBtn = document.getElementById("settings-connect");
+
+  let baseUrl = urlInput.value.trim().replace(/\/+$/, "");
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!baseUrl || !email || !password) {
+    errorEl.textContent = "All fields are required.";
+    errorEl.style.display = "block";
+    return;
+  }
+
+  if (!baseUrl.startsWith("http")) {
+    baseUrl = "https://" + baseUrl;
+  }
+
+  errorEl.style.display = "none";
+  connectBtn.disabled = true;
+  connectBtn.innerHTML = '<span class="spinner"></span> Connecting...';
+
+  try {
+    const resp = await fetch(`${baseUrl}/api/extension/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(data.error || "Login failed");
+    }
+
+    await chrome.storage.local.set({
+      saturnUrl: baseUrl,
+      saturnToken: data.token,
+      saturnUserName: data.userName,
+      saturnEmail: data.email,
+    });
+
+    passwordInput.value = "";
+    loadConnectionStatus();
+    showFeedback("Connected to Saturn!");
+  } catch (err) {
+    errorEl.textContent = err.message || "Failed to connect. Check the URL and credentials.";
+    errorEl.style.display = "block";
+  } finally {
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = "Connect to Saturn";
+  }
+}
+
+async function disconnectFromSaturn() {
+  await chrome.storage.local.remove(["saturnToken", "saturnUrl", "saturnUserName", "saturnEmail"]);
+  loadConnectionStatus();
+  showFeedback("Disconnected from Saturn.");
+}
+
+async function sendToSaturn(type) {
+  const { saturnToken, saturnUrl } = await chrome.storage.local.get(["saturnToken", "saturnUrl"]);
+  if (!saturnToken || !saturnUrl) {
+    showFeedback("Connect to Saturn first in Settings.");
+    return;
+  }
+
+  const key = type === "content" ? "contentAssets" : "imageAssets";
+  const data = await chrome.storage.local.get(key);
+  const items = data[key] || [];
+
+  if (items.length === 0) {
+    showFeedback("No items to send.");
+    return;
+  }
+
+  const btn = document.getElementById(type === "content" ? "send-content" : "send-images");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Sending...';
+
+  try {
+    const body = {};
+    if (type === "content") {
+      body.contentAssets = items;
+    } else {
+      body.imageAssets = items;
+    }
+
+    const resp = await fetch(`${saturnUrl}/api/extension/push-assets`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${saturnToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (resp.status === 401) {
+      await chrome.storage.local.remove(["saturnToken"]);
+      loadConnectionStatus();
+      showFeedback("Session expired. Please reconnect in Settings.");
+      return;
+    }
+
+    const result = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(result.error || "Failed to send");
+    }
+
+    const r = type === "content" ? result.results.content : result.results.images;
+    const msg = `Sent! ${r.created} added, ${r.skipped} already existed.`;
+    showFeedback(msg);
+
+    if (r.created > 0) {
+      await chrome.storage.local.set({ [key]: [] });
+      loadLists();
+    }
+  } catch (err) {
+    showFeedback("Error: " + (err.message || "Send failed"));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5l13 6.5-13 6.5V9l8-1-8-1V1.5z"/></svg> Send to Saturn`;
+  }
 }
 
 async function captureContent() {
@@ -337,9 +522,9 @@ function showFeedback(msg) {
   toast.className = "feedback-toast";
   toast.textContent = msg;
   toast.style.cssText =
-    "position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#810FFB;color:white;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:200;animation:fadeIn 0.2s";
+    "position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#810FFB;color:white;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:200;animation:fadeIn 0.2s;max-width:340px;text-align:center";
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 1800);
+  setTimeout(() => toast.remove(), 2500);
 }
 
 function csvField(value) {

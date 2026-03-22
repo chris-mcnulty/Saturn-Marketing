@@ -19,9 +19,17 @@
     <p class="tagline">by Synozur</p>
   </div>
 
+  <div class="connection-bar" id="connection-bar" style="display:none">
+    <span class="connection-dot" id="connection-dot"></span>
+    <span class="connection-text" id="connection-text">Not connected</span>
+  </div>
+
   <div class="tabs">
-    <button class="tab active" data-tab="content">Content Assets <span class="badge" id="content-count">0</span></button>
-    <button class="tab" data-tab="images">Image Assets <span class="badge" id="image-count">0</span></button>
+    <button class="tab active" data-tab="content">Content <span class="badge" id="content-count">0</span></button>
+    <button class="tab" data-tab="images">Images <span class="badge" id="image-count">0</span></button>
+    <button class="tab" data-tab="settings">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M7.07 1.005a.75.75 0 011.86 0l.25 1.75a5 5 0 011.32.77l1.68-.56a.75.75 0 01.93.93l-.56 1.68a5 5 0 01.77 1.32l1.75.25a.75.75 0 010 1.86l-1.75.25a5 5 0 01-.77 1.32l.56 1.68a.75.75 0 01-.93.93l-1.68-.56a5 5 0 01-1.32.77l-.25 1.75a.75.75 0 01-1.86 0l-.25-1.75a5 5 0 01-1.32-.77l-1.68.56a.75.75 0 01-.93-.93l.56-1.68a5 5 0 01-.77-1.32L1.005 8.93a.75.75 0 010-1.86l1.75-.25a5 5 0 01.77-1.32l-.56-1.68a.75.75 0 01.93-.93l1.68.56a5 5 0 011.32-.77l.25-1.75zM8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/></svg>
+    </button>
   </div>
 
   <div class="tab-content active" id="tab-content">
@@ -35,8 +43,12 @@
       <p class="hint">Click "Capture This Page" to grab the current page's title, URL, and description.</p>
     </div>
     <div class="actions" id="content-actions" style="display:none">
+      <button class="btn btn-send" id="send-content">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5l13 6.5-13 6.5V9l8-1-8-1V1.5z"/></svg>
+        Send to Saturn
+      </button>
       <button class="btn btn-export" id="export-content">Export CSV</button>
-      <button class="btn btn-clear" id="clear-content">Clear All</button>
+      <button class="btn btn-clear" id="clear-content">Clear</button>
     </div>
   </div>
 
@@ -55,8 +67,51 @@
       <p class="hint">Right-click an image on any page to capture it.</p>
     </div>
     <div class="actions" id="image-actions" style="display:none">
+      <button class="btn btn-send" id="send-images">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5l13 6.5-13 6.5V9l8-1-8-1V1.5z"/></svg>
+        Send to Saturn
+      </button>
       <button class="btn btn-export" id="export-images">Export CSV</button>
-      <button class="btn btn-clear" id="clear-images">Clear All</button>
+      <button class="btn btn-clear" id="clear-images">Clear</button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-section">
+      <h3 class="settings-title">Saturn Connection</h3>
+      <p class="settings-desc">Connect to your Saturn instance to send captured assets directly.</p>
+
+      <div id="settings-login-form">
+        <div class="edit-field">
+          <label>Saturn URL</label>
+          <input type="text" id="settings-url" placeholder="https://your-app.replit.app" />
+        </div>
+        <div class="edit-field">
+          <label>Email</label>
+          <input type="email" id="settings-email" placeholder="you@company.com" />
+        </div>
+        <div class="edit-field">
+          <label>Password</label>
+          <input type="password" id="settings-password" placeholder="Your password" />
+        </div>
+        <button class="btn btn-primary btn-full" id="settings-connect" style="margin-top:8px">Connect to Saturn</button>
+      </div>
+
+      <div id="settings-connected" style="display:none">
+        <div class="connected-info">
+          <div class="connected-avatar">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a4 4 0 100 8A4 4 0 008 0zM2 14a6 6 0 0112 0H2z"/></svg>
+          </div>
+          <div>
+            <div class="connected-name" id="connected-name"></div>
+            <div class="connected-email" id="connected-email"></div>
+            <div class="connected-url" id="connected-url"></div>
+          </div>
+        </div>
+        <button class="btn btn-clear btn-full" id="settings-disconnect" style="margin-top:12px">Disconnect</button>
+      </div>
+
+      <div class="settings-error" id="settings-error" style="display:none"></div>
     </div>
   </div>
 

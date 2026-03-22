@@ -12,11 +12,13 @@ import csvRouter from "./csv";
 import adminRouter from "./admin";
 import groundingDocsRouter from "./groundingDocs";
 import emailGeneratorRouter from "./emailGenerator";
+import extensionApiRouter from "./extensionApi";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(extensionApiRouter);
 router.use(categoriesRouter);
 router.use(assetsRouter);
 router.use(brandAssetsRouter);

@@ -11,6 +11,15 @@ A Chromium-compatible browser extension for capturing web content and images for
 5. Select the `extensions/saturn-capture` directory
 6. The Saturn Capture icon appears in your toolbar
 
+## Setup - Connect to Saturn
+
+1. Click the Saturn Capture icon in your toolbar
+2. Go to the Settings tab (gear icon)
+3. Enter your Saturn URL (e.g., `https://your-app.replit.app`)
+4. Enter your Saturn email and password
+5. Click "Connect to Saturn"
+6. The connection bar at the top will turn green when connected
+
 ## Usage
 
 ### Capturing Content Assets
@@ -25,12 +34,20 @@ A Chromium-compatible browser extension for capturing web content and images for
 3. The image URL, page title, and alt text are captured
 4. Switch to the Image Assets tab in the popup to see captured images
 
+### Sending to Saturn
+1. After capturing content or images, click "Send to Saturn"
+2. Assets are pushed directly to your Saturn instance
+3. Content assets go to your Assets library
+4. Image assets go to your Brand Assets library
+5. Duplicates are automatically skipped
+6. Successfully sent items are cleared from the extension
+
 ### Editing & Managing
 - Click "Edit" on any item to modify its title, URL, description, or tags
-- Click the "×" button to remove individual items
-- Use "Clear All" to reset a list after exporting
+- Click the "x" button to remove individual items
+- Use "Clear" to reset a list
 
-### Exporting CSV
-- Click "Export CSV" to download a CSV file compatible with Saturn's import
+### Exporting CSV (Alternative)
+- Click "Export CSV" to download a CSV file compatible with Saturn's CSV import
 - Content assets CSV: `url`, `title`, `description` columns
 - Image assets CSV: `image_url`, `title`, `description`, `tags` columns
