@@ -555,6 +555,33 @@ export interface GenerateEmailResponse {
   assetTitles: string[];
 }
 
+export interface SaveEmailBody {
+  platform: string;
+  emailBody: string;
+  subjectLineSuggestions: string[];
+  coachingTips: string[];
+  assetTitles: string[];
+  assetIds: number[];
+  tone?: string;
+  callToAction?: string;
+  recipientContext?: string;
+}
+
+export interface SavedEmail {
+  id: number;
+  tenantId: number;
+  platform: string;
+  emailBody: string;
+  subjectLineSuggestions: string[];
+  coachingTips: string[];
+  assetTitles: string[];
+  assetIds: number[];
+  tone?: string | null;
+  callToAction?: string | null;
+  recipientContext?: string | null;
+  createdAt: string;
+}
+
 export type ListAssetsParams = {
   categoryId?: number;
   isActive?: boolean;

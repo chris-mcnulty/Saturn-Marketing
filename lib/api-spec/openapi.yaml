@@ -1144,6 +1144,65 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /email/saved:
+    get:
+      operationId: listSavedEmails
+      tags: [emailGenerator]
+      summary: List saved generated emails for the current tenant
+      responses:
+        "200":
+          description: List of saved emails
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedEmail"
+    post:
+      operationId: saveGeneratedEmail
+      tags: [emailGenerator]
+      summary: Save a generated email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveEmailBody"
+      responses:
+        "201":
+          description: Saved email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedEmail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /email/saved/{id}:
+    delete:
+      operationId: deleteSavedEmail
+      tags: [emailGenerator]
+      summary: Delete a saved email
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Email deleted
+        "404":
+          description: Email not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -2033,3 +2092,90 @@ components:
         - coachingTips
         - platform
         - assetTitles
+
+    SaveEmailBody:
+      type: object
+      properties:
+        platform:
+          type: string
+        emailBody:
+          type: string
+        subjectLineSuggestions:
+          type: array
+          items:
+            type: string
+        coachingTips:
+          type: array
+          items:
+            type: string
+        assetTitles:
+          type: array
+          items:
+            type: string
+        assetIds:
+          type: array
+          items:
+            type: integer
+        tone:
+          type: string
+        callToAction:
+          type: string
+        recipientContext:
+          type: string
+      required:
+        - platform
+        - emailBody
+        - subjectLineSuggestions
+        - coachingTips
+        - assetTitles
+        - assetIds
+
+    SavedEmail:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        platform:
+          type: string
+        emailBody:
+          type: string
+        subjectLineSuggestions:
+          type: array
+          items:
+            type: string
+        coachingTips:
+          type: array
+          items:
+            type: string
+        assetTitles:
+          type: array
+          items:
+            type: string
+        assetIds:
+          type: array
+          items:
+            type: integer
+        tone:
+          type: string
+          nullable: true
+        callToAction:
+          type: string
+          nullable: true
+        recipientContext:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - platform
+        - emailBody
+        - subjectLineSuggestions
+        - coachingTips
+        - assetTitles
+        - assetIds
+        - createdAt

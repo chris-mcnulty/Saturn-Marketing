@@ -53,6 +53,8 @@ export * from "./listCampaignsStatus";
 export * from "./loginBody";
 export * from "./messageResponse";
 export * from "./registerBody";
+export * from "./savedEmail";
+export * from "./saveEmailBody";
 export * from "./socialAccount";
 export * from "./tenant";
 export * from "./updateAssetBody";

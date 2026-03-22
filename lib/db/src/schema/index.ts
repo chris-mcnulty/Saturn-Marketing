@@ -15,3 +15,4 @@ export * from "./domainBlocklist";
 export * from "./consultantAccess";
 export * from "./groundingDocuments";
 export * from "./generatedPosts";
+export * from "./generatedEmails";

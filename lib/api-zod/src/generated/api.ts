@@ -1104,3 +1104,44 @@ export const GeneratePromotionalEmailResponse = zod.object({
   platform: zod.string(),
   assetTitles: zod.array(zod.string()),
 });
+
+/**
+ * @summary List saved generated emails for the current tenant
+ */
+export const ListSavedEmailsResponseItem = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  platform: zod.string(),
+  emailBody: zod.string(),
+  subjectLineSuggestions: zod.array(zod.string()),
+  coachingTips: zod.array(zod.string()),
+  assetTitles: zod.array(zod.string()),
+  assetIds: zod.array(zod.number()),
+  tone: zod.string().nullish(),
+  callToAction: zod.string().nullish(),
+  recipientContext: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+export const ListSavedEmailsResponse = zod.array(ListSavedEmailsResponseItem);
+
+/**
+ * @summary Save a generated email
+ */
+export const SaveGeneratedEmailBody = zod.object({
+  platform: zod.string(),
+  emailBody: zod.string(),
+  subjectLineSuggestions: zod.array(zod.string()),
+  coachingTips: zod.array(zod.string()),
+  assetTitles: zod.array(zod.string()),
+  assetIds: zod.array(zod.number()),
+  tone: zod.string().optional(),
+  callToAction: zod.string().optional(),
+  recipientContext: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a saved email
+ */
+export const DeleteSavedEmailParams = zod.object({
+  id: zod.coerce.number(),
+});

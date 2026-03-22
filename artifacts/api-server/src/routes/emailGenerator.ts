@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and, inArray } from "drizzle-orm";
-import { db, assetsTable } from "@workspace/db";
-import { GeneratePromotionalEmailBody } from "@workspace/api-zod";
+import { eq, and, inArray, desc } from "drizzle-orm";
+import { db, assetsTable, generatedEmailsTable } from "@workspace/db";
+import { GeneratePromotionalEmailBody, SaveGeneratedEmailBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getGroundingContext } from "../lib/groundingContext";
@@ -204,6 +204,83 @@ router.post("/email/generate", requireAuth, async (req, res): Promise<void> => {
   } catch (err) {
     logger.error({ err }, "Email generation failed");
     res.status(500).json({ error: "Failed to generate email" });
+  }
+});
+
+router.get("/email/saved", requireAuth, async (req, res): Promise<void> => {
+  const tenantId = req.tenantId!;
+  try {
+    const emails = await db
+      .select()
+      .from(generatedEmailsTable)
+      .where(eq(generatedEmailsTable.tenantId, tenantId))
+      .orderBy(desc(generatedEmailsTable.createdAt));
+    res.json(emails);
+  } catch (err) {
+    logger.error({ err }, "Failed to list saved emails");
+    res.status(500).json({ error: "Failed to list saved emails" });
+  }
+});
+
+router.post("/email/saved", requireAuth, async (req, res): Promise<void> => {
+  const parsed = SaveGeneratedEmailBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const tenantId = req.tenantId!;
+  const data = parsed.data;
+
+  try {
+    const [saved] = await db
+      .insert(generatedEmailsTable)
+      .values({
+        tenantId,
+        platform: data.platform,
+        emailBody: data.emailBody,
+        subjectLineSuggestions: data.subjectLineSuggestions,
+        coachingTips: data.coachingTips,
+        assetTitles: data.assetTitles,
+        assetIds: data.assetIds,
+        tone: data.tone ?? null,
+        callToAction: data.callToAction ?? null,
+        recipientContext: data.recipientContext ?? null,
+      })
+      .returning();
+    res.status(201).json(saved);
+  } catch (err) {
+    logger.error({ err }, "Failed to save email");
+    res.status(500).json({ error: "Failed to save email" });
+  }
+});
+
+router.delete("/email/saved/:id", requireAuth, async (req, res): Promise<void> => {
+  const tenantId = req.tenantId!;
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  try {
+    const deleted = await db
+      .delete(generatedEmailsTable)
+      .where(
+        and(
+          eq(generatedEmailsTable.id, id),
+          eq(generatedEmailsTable.tenantId, tenantId),
+        ),
+      )
+      .returning();
+    if (deleted.length === 0) {
+      res.status(404).json({ error: "Email not found" });
+      return;
+    }
+    res.status(204).send();
+  } catch (err) {
+    logger.error({ err }, "Failed to delete email");
+    res.status(500).json({ error: "Failed to delete email" });
   }
 });
 
