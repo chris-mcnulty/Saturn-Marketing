@@ -23,8 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Search, Link as LinkIcon, Trash2, Edit, RefreshCw, CheckCircle2, XCircle, Eye, Download, Upload } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Plus, Search, Link as LinkIcon, Trash2, Edit, RefreshCw, CheckCircle2, XCircle, Eye, Download, Upload, Filter, X } from "lucide-react";
+import { format, isAfter, isBefore, startOfDay, endOfDay, parseISO } from "date-fns";
 import { useLocation } from "wouter";
 
 const createSchema = z.object({
@@ -35,6 +35,9 @@ const createSchema = z.object({
 
 export default function Assets() {
   const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importValidation, setImportValidation] = useState<ImportCsvValidationResult | null>(null);
@@ -167,10 +170,33 @@ export default function Assets() {
     });
   };
 
-  const filteredAssets = assets?.filter(a => 
-    a.url.toLowerCase().includes(search.toLowerCase()) || 
-    (a.title && a.title.toLowerCase().includes(search.toLowerCase()))
-  );
+  const hasActiveFilters = filterCategory !== "" || filterDateFrom !== "" || filterDateTo !== "";
+
+  const clearFilters = () => {
+    setFilterCategory("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
+
+  const filteredAssets = assets?.filter(a => {
+    const matchesSearch = a.url.toLowerCase().includes(search.toLowerCase()) || 
+      (a.title && a.title.toLowerCase().includes(search.toLowerCase()));
+    
+    const matchesCategory = filterCategory === "" || 
+      (filterCategory === "uncategorized" ? !a.categoryId : String(a.categoryId) === filterCategory);
+    
+    let matchesDate = true;
+    if (filterDateFrom) {
+      const fromDate = startOfDay(parseISO(filterDateFrom));
+      matchesDate = matchesDate && isAfter(new Date(a.createdAt), fromDate);
+    }
+    if (filterDateTo) {
+      const toDate = endOfDay(parseISO(filterDateTo));
+      matchesDate = matchesDate && isBefore(new Date(a.createdAt), toDate);
+    }
+
+    return matchesSearch && matchesCategory && matchesDate;
+  });
 
   return (
     <AppLayout>
@@ -213,16 +239,54 @@ export default function Assets() {
         </div>
 
         <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-border/50 bg-secondary/20 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search assets..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-11 rounded-xl bg-background"
-              />
+          <div className="p-4 border-b border-border/50 bg-secondary/20 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search assets..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-11 rounded-xl bg-background"
+                />
+              </div>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="h-11 px-3 rounded-xl border border-input bg-background text-sm min-w-[160px]"
+              >
+                <option value="">All Categories</option>
+                <option value="uncategorized">Uncategorized</option>
+                {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  placeholder="From"
+                  className="h-11 rounded-xl bg-background w-[150px] text-sm"
+                />
+                <span className="text-muted-foreground text-sm">to</span>
+                <Input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  placeholder="To"
+                  className="h-11 rounded-xl bg-background w-[150px] text-sm"
+                />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-11 px-3 text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4 mr-1" /> Clear
+                </Button>
+              )}
             </div>
+            {hasActiveFilters && (
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredAssets?.length ?? 0} of {assets?.length ?? 0} assets
+              </p>
+            )}
           </div>
           
           <div className="overflow-x-auto">
@@ -230,6 +294,7 @@ export default function Assets() {
               <thead className="bg-secondary/40 text-muted-foreground uppercase text-xs font-semibold tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Content</th>
+                  <th className="px-6 py-4">Category</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">AI Extraction</th>
                   <th className="px-6 py-4">Added</th>
@@ -238,10 +303,10 @@ export default function Assets() {
               </thead>
               <tbody className="divide-y divide-border/50">
                 {isLoading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">Loading assets...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Loading assets...</td></tr>
                 ) : filteredAssets?.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center">
+                    <td colSpan={6} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <img src={`${import.meta.env.BASE_URL}images/empty-state.png`} className="w-32 h-32 opacity-50 mb-4" alt="Empty" />
                         <p className="text-muted-foreground font-medium">No assets found</p>
@@ -267,6 +332,15 @@ export default function Assets() {
                             </a>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {asset.categoryName ? (
+                          <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                            {asset.categoryName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <button 
