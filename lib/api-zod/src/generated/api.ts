@@ -1019,6 +1019,7 @@ export const UpdateGeneratedPostBody = zod.object({
   dateTime: zod.string().optional(),
   tags: zod.string().nullish(),
   firstComment: zod.string().nullish(),
+  imageUrls: zod.string().nullish(),
 });
 
 export const UpdateGeneratedPostResponse = zod.object({

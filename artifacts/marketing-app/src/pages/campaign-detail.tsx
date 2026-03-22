@@ -68,6 +68,8 @@ export default function CampaignDetail() {
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editPostContent, setEditPostContent] = useState("");
   const [editPostTags, setEditPostTags] = useState("");
+  const [editPostImageUrls, setEditPostImageUrls] = useState("");
+  const [showBrandAssetPicker, setShowBrandAssetPicker] = useState(false);
 
   const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
   const [overrideAssetId, setOverrideAssetId] = useState<number | null>(null);
@@ -79,6 +81,7 @@ export default function CampaignDetail() {
   const [brandAssetCategoryFilter, setBrandAssetCategoryFilter] = useState<string>("all");
   const [showBrandPicker, setShowBrandPicker] = useState(false);
 
+  const [isDeleteAllPostsOpen, setIsDeleteAllPostsOpen] = useState(false);
   const { data: brandAssets } = useListBrandAssets();
   const { data: brandCategories } = useListBrandAssetCategories();
 
@@ -156,7 +159,6 @@ export default function CampaignDetail() {
       },
     });
   };
-  const [isDeleteAllPostsOpen, setIsDeleteAllPostsOpen] = useState(false);
 
   const exportFormats = [
     { value: "socialpilot", label: "SocialPilot" },
@@ -610,6 +612,74 @@ export default function CampaignDetail() {
                             <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">{post.dateTime}</span>
                             <span>Acct: {post.accountId}</span>
                           </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-muted-foreground">Image</Label>
+                            <div className="flex gap-2 items-start">
+                              {editPostImageUrls ? (
+                                <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-border">
+                                  <img src={editPostImageUrls.split(';')[0]} className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-20 h-20 rounded-lg border border-dashed border-border flex items-center justify-center shrink-0 bg-muted/30">
+                                  <ImageIcon className="w-6 h-6 text-muted-foreground/50" />
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-1.5 flex-1">
+                                <Input
+                                  placeholder="Image URL"
+                                  value={editPostImageUrls}
+                                  onChange={(e) => setEditPostImageUrls(e.target.value)}
+                                  className="rounded-xl text-xs"
+                                />
+                                <div className="flex gap-1.5">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl text-xs h-7"
+                                    onClick={() => setShowBrandAssetPicker(!showBrandAssetPicker)}
+                                  >
+                                    <ImageIcon className="w-3 h-3 mr-1" /> Brand Assets
+                                  </Button>
+                                  {editPostImageUrls && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="rounded-xl text-xs h-7 text-destructive hover:bg-destructive/10"
+                                      onClick={() => setEditPostImageUrls("")}
+                                    >
+                                      <X className="w-3 h-3 mr-1" /> Remove
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {showBrandAssetPicker && (
+                              <div className="border border-border rounded-xl p-3 bg-muted/20 max-h-48 overflow-y-auto">
+                                {brandAssets && brandAssets.length > 0 ? (
+                                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                    {brandAssets.map((asset) => (
+                                      <button
+                                        key={asset.id}
+                                        type="button"
+                                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:opacity-80 ${editPostImageUrls === asset.imageUrl ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'}`}
+                                        onClick={() => {
+                                          setEditPostImageUrls(asset.imageUrl);
+                                          setShowBrandAssetPicker(false);
+                                        }}
+                                        title={asset.title || undefined}
+                                      >
+                                        <img src={asset.imageUrl} className="w-full h-full object-cover" />
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground text-center py-2">No brand assets available</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <textarea
                             className="w-full min-h-[120px] p-3 rounded-xl border border-input bg-background text-sm resize-y"
                             value={editPostContent}
@@ -622,15 +692,16 @@ export default function CampaignDetail() {
                             className="rounded-xl"
                           />
                           <div className="flex gap-2 justify-end">
-                            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setEditingPostId(null)}>
+                            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => { setEditingPostId(null); setShowBrandAssetPicker(false); }}>
                               <X className="w-4 h-4 mr-1" /> Cancel
                             </Button>
                             <Button size="sm" className="rounded-xl" disabled={updatePostMut.isPending} onClick={() => {
-                              updatePostMut.mutate({ id, postId: post.id, data: { postContent: editPostContent, tags: editPostTags || null } }, {
+                              updatePostMut.mutate({ id, postId: post.id, data: { postContent: editPostContent, tags: editPostTags || null, imageUrls: editPostImageUrls || null } }, {
                                 onSuccess: (updated) => {
-                                  setGeneratedPosts(prev => (prev || []).map(p => p.id === post.id ? { ...p, postContent: updated.postContent, tags: updated.tags } : p));
+                                  setGeneratedPosts(prev => (prev || []).map(p => p.id === post.id ? { ...p, postContent: updated.postContent, tags: updated.tags, imageUrls: updated.imageUrls } : p));
                                   queryClient.invalidateQueries({ queryKey: getListGeneratedPostsQueryKey(id) });
                                   setEditingPostId(null);
+                                  setShowBrandAssetPicker(false);
                                   toast({ title: "Post updated" });
                                 },
                                 onError: () => toast({ title: "Failed to update post", variant: "destructive" }),
@@ -657,6 +728,8 @@ export default function CampaignDetail() {
                                   setEditingPostId(post.id);
                                   setEditPostContent(post.postContent);
                                   setEditPostTags(post.tags || "");
+                                  setEditPostImageUrls(post.imageUrls || "");
+                                  setShowBrandAssetPicker(false);
                                 }}>
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>

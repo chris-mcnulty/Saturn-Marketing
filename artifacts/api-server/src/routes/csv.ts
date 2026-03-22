@@ -545,7 +545,7 @@ router.put("/campaigns/:id/generated-posts/:postId", requireAuth, async (req, re
     return;
   }
 
-  const { postContent, dateTime, tags, firstComment } = req.body;
+  const { postContent, dateTime, tags, firstComment, imageUrls } = req.body;
 
   const existing = await db.select().from(generatedPostsTable)
     .where(and(
@@ -564,6 +564,7 @@ router.put("/campaigns/:id/generated-posts/:postId", requireAuth, async (req, re
   if (dateTime !== undefined) updates.dateTime = dateTime;
   if (tags !== undefined) updates.tags = tags;
   if (firstComment !== undefined) updates.firstComment = firstComment;
+  if (imageUrls !== undefined) updates.imageUrls = imageUrls;
 
   if (Object.keys(updates).length === 0) {
     res.status(400).json({ error: "No fields to update" });

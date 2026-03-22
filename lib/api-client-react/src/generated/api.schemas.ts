@@ -732,6 +732,8 @@ export type UpdateGeneratedPostBody = {
   tags?: string | null;
   /** @nullable */
   firstComment?: string | null;
+  /** @nullable */
+  imageUrls?: string | null;
 };
 
 export type GenerateCampaignPosts202 = {

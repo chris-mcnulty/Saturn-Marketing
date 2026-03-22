@@ -1148,6 +1148,8 @@ paths:
                   type: ["string", "null"]
                 firstComment:
                   type: ["string", "null"]
+                imageUrls:
+                  type: ["string", "null"]
       responses:
         "200":
           description: Updated post
