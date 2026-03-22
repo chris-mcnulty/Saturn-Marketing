@@ -1,5 +1,5 @@
 import { db, assetsTable, brandAssetsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import * as cheerio from "cheerio";
 import { logger } from "./logger";
@@ -144,21 +144,15 @@ IMPORTANT RULES:
 
     if (imageUrl) {
       try {
-        const existing = await db.select({ id: brandAssetsTable.id })
-          .from(brandAssetsTable)
-          .where(and(
-            eq(brandAssetsTable.tenantId, asset.tenantId),
-            eq(brandAssetsTable.imageUrl, imageUrl)
-          ));
+        const result = await db.insert(brandAssetsTable).values({
+          tenantId: asset.tenantId,
+          imageUrl: imageUrl,
+          title: title || null,
+          description: null,
+          tags: null,
+        }).onConflictDoNothing();
 
-        if (existing.length === 0) {
-          await db.insert(brandAssetsTable).values({
-            tenantId: asset.tenantId,
-            imageUrl: imageUrl,
-            title: title || null,
-            description: null,
-            tags: null,
-          });
+        if (result.rowCount && result.rowCount > 0) {
           logger.info({ assetId, imageUrl }, "Auto-added extracted image to brand assets");
         }
       } catch (brandErr) {
