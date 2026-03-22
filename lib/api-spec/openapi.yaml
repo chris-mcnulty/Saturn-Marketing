@@ -36,6 +36,10 @@ tags:
     description: Promotional email generation operations
   - name: productTags
     description: Product/service offering tag operations
+  - name: markets
+    description: Market hierarchy operations
+  - name: admin
+    description: Global admin operations
 
 paths:
   /healthz:
@@ -139,6 +143,12 @@ paths:
       operationId: listCategories
       tags: [categories]
       summary: List categories for the current tenant
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of categories
@@ -222,6 +232,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of assets
@@ -385,6 +400,12 @@ paths:
       operationId: listBrandAssetCategories
       tags: [brandAssetCategories]
       summary: List brand asset categories for the current tenant
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of brand asset categories
@@ -455,6 +476,12 @@ paths:
       operationId: listProductTags
       tags: [productTags]
       summary: List product/service tags for the current tenant
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of product tags
@@ -593,6 +620,12 @@ paths:
       operationId: listBrandAssets
       tags: [brandAssets]
       summary: List brand-approved visual assets
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of brand assets
@@ -669,6 +702,11 @@ paths:
           schema:
             type: string
             enum: [draft, scheduled, active, paused, completed]
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of campaigns
@@ -854,6 +892,12 @@ paths:
       operationId: listSocialAccounts
       tags: [socialAccounts]
       summary: List social accounts for the current tenant
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of social accounts
@@ -1158,6 +1202,12 @@ paths:
       operationId: listGroundingDocs
       tags: [groundingDocs]
       summary: List grounding documents for the current tenant
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of grounding documents
@@ -1359,6 +1409,12 @@ paths:
       operationId: listSavedEmails
       tags: [emailGenerator]
       summary: List saved generated emails for the current tenant
+      parameters:
+        - name: market_id
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: List of saved emails
@@ -1408,6 +1464,216 @@ paths:
           description: Email deleted
         "404":
           description: Email not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /markets:
+    get:
+      operationId: listMarkets
+      tags: [markets]
+      summary: List markets for the current tenant
+      responses:
+        "200":
+          description: List of markets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Market"
+    post:
+      operationId: createMarket
+      tags: [markets]
+      summary: Create a new market
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMarketBody"
+      responses:
+        "201":
+          description: Market created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+
+  /markets/{id}:
+    get:
+      operationId: getMarket
+      tags: [markets]
+      summary: Get a market by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "404":
+          description: Market not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateMarket
+      tags: [markets]
+      summary: Update a market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMarketBody"
+      responses:
+        "200":
+          description: Market updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "404":
+          description: Market not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMarket
+      tags: [markets]
+      summary: Delete a market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Market deleted
+        "400":
+          description: Cannot delete default market
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/tenants:
+    get:
+      operationId: adminListTenants
+      tags: [admin]
+      summary: List all tenants (Global Admin only)
+      responses:
+        "200":
+          description: List of tenants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tenant"
+    post:
+      operationId: adminCreateTenant
+      tags: [admin]
+      summary: Create a new tenant (Global Admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateTenantBody"
+      responses:
+        "201":
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+
+  /admin/tenants/{id}:
+    get:
+      operationId: adminGetTenant
+      tags: [admin]
+      summary: Get a single tenant by ID (Global Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tenant details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+        "404":
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: adminUpdateTenant
+      tags: [admin]
+      summary: Update a tenant (Global Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateTenantBody"
+      responses:
+        "200":
+          description: Tenant updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+        "404":
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: adminDeleteTenant
+      tags: [admin]
+      summary: Delete a tenant (Global Admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Tenant deleted
+        "404":
+          description: Tenant not found
           content:
             application/json:
               schema:
@@ -1477,9 +1743,18 @@ components:
           $ref: "#/components/schemas/User"
         tenant:
           $ref: "#/components/schemas/Tenant"
+        markets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Market"
+        defaultMarket:
+          oneOf:
+            - $ref: "#/components/schemas/Market"
+            - type: "null"
       required:
         - user
         - tenant
+        - markets
 
     User:
       type: object
@@ -1571,6 +1846,8 @@ components:
       properties:
         name:
           type: string
+        marketId:
+          type: integer
       required:
         - name
 
@@ -1632,6 +1909,8 @@ components:
           type: string
         categoryId:
           type: integer
+        marketId:
+          type: integer
       required:
         - url
 
@@ -1677,6 +1956,8 @@ components:
       properties:
         name:
           type: string
+        marketId:
+          type: integer
       required:
         - name
 
@@ -1728,6 +2009,8 @@ components:
         tags:
           type: string
         categoryId:
+          type: integer
+        marketId:
           type: integer
       required:
         - imageUrl
@@ -1917,6 +2200,8 @@ components:
           type: boolean
         includeSunday:
           type: boolean
+        marketId:
+          type: integer
       required:
         - name
         - startDate
@@ -2029,6 +2314,8 @@ components:
           type: string
         socialPilotAccountId:
           type: string
+        marketId:
+          type: integer
       required:
         - platform
         - accountName
@@ -2058,7 +2345,9 @@ components:
         id:
           type: integer
         tenantId:
-          type: integer
+          type: ["integer", "null"]
+        marketId:
+          type: ["integer", "null"]
         name:
           type: string
         description:
@@ -2076,6 +2365,9 @@ components:
           type: integer
         isActive:
           type: boolean
+        scope:
+          type: string
+          enum: [system, tenant, market]
         createdAt:
           type: string
           format: date-time
@@ -2084,7 +2376,6 @@ components:
           format: date-time
       required:
         - id
-        - tenantId
         - name
         - category
         - extractedText
@@ -2109,6 +2400,8 @@ components:
           type: string
         originalFileName:
           type: string
+        marketId:
+          type: integer
       required:
         - name
         - category
@@ -2286,6 +2579,8 @@ components:
           type: string
         description:
           type: string
+        marketId:
+          type: integer
       required:
         - name
 
@@ -2315,6 +2610,8 @@ components:
           type: string
         recipientContext:
           type: string
+        marketId:
+          type: integer
       required:
         - assetIds
         - platform
@@ -2374,6 +2671,8 @@ components:
           type: string
         recipientContext:
           type: string
+        marketId:
+          type: integer
       required:
         - platform
         - emailBody
@@ -2431,3 +2730,80 @@ components:
         - assetTitles
         - assetIds
         - createdAt
+
+    Market:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        isDefault:
+          type: boolean
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - name
+        - isDefault
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateMarketBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+
+    UpdateMarketBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+
+    AdminCreateTenantBody:
+      type: object
+      properties:
+        name:
+          type: string
+        domain:
+          type: string
+        plan:
+          type: string
+        status:
+          type: string
+      required:
+        - name
+        - domain
+
+    AdminUpdateTenantBody:
+      type: object
+      properties:
+        name:
+          type: string
+        domain:
+          type: string
+        plan:
+          type: string
+        status:
+          type: string

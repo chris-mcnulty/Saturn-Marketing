@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull, sql } from "drizzle-orm";
 import { db, groundingDocumentsTable } from "@workspace/db";
 import {
   CreateGroundingDocBody,
@@ -9,6 +9,7 @@ import {
   DeleteGroundingDocParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateMarketOwnership } from "../lib/validateMarket";
 import multer from "multer";
 import mammoth from "mammoth";
 import { logger } from "../lib/logger";
@@ -59,15 +60,43 @@ async function extractTextFromFile(buffer: Buffer, mimetype: string, originalNam
   return { text, fileType: ext };
 }
 
+function determineScope(doc: { tenantId: number | null; marketId: number | null }): string {
+  if (doc.tenantId === null && doc.marketId === null) return "system";
+  if (doc.tenantId !== null && doc.marketId === null) return "tenant";
+  return "market";
+}
+
 const router: IRouter = Router();
 
 router.get("/grounding-docs", requireAuth, async (req, res): Promise<void> => {
-  const docs = await db.select()
-    .from(groundingDocumentsTable)
-    .where(eq(groundingDocumentsTable.tenantId, req.tenantId!))
-    .orderBy(groundingDocumentsTable.createdAt);
+  const marketId = req.query.market_id ? parseInt(req.query.market_id as string) : null;
 
-  res.json(docs);
+  let docs;
+  if (marketId && !isNaN(marketId)) {
+    docs = await db.select()
+      .from(groundingDocumentsTable)
+      .where(or(
+        and(isNull(groundingDocumentsTable.tenantId), isNull(groundingDocumentsTable.marketId)),
+        and(eq(groundingDocumentsTable.tenantId, req.tenantId!), isNull(groundingDocumentsTable.marketId)),
+        and(eq(groundingDocumentsTable.tenantId, req.tenantId!), eq(groundingDocumentsTable.marketId, marketId))
+      ))
+      .orderBy(groundingDocumentsTable.createdAt);
+  } else {
+    docs = await db.select()
+      .from(groundingDocumentsTable)
+      .where(or(
+        and(isNull(groundingDocumentsTable.tenantId), isNull(groundingDocumentsTable.marketId)),
+        and(eq(groundingDocumentsTable.tenantId, req.tenantId!), isNull(groundingDocumentsTable.marketId))
+      ))
+      .orderBy(groundingDocumentsTable.createdAt);
+  }
+
+  const docsWithScope = docs.map(doc => ({
+    ...doc,
+    scope: determineScope(doc),
+  }));
+
+  res.json(docsWithScope);
 });
 
 router.get("/grounding-docs/:id", requireAuth, async (req, res): Promise<void> => {
@@ -79,17 +108,19 @@ router.get("/grounding-docs/:id", requireAuth, async (req, res): Promise<void> =
 
   const [doc] = await db.select()
     .from(groundingDocumentsTable)
-    .where(and(
-      eq(groundingDocumentsTable.id, params.data.id),
-      eq(groundingDocumentsTable.tenantId, req.tenantId!)
-    ));
+    .where(eq(groundingDocumentsTable.id, params.data.id));
 
   if (!doc) {
     res.status(404).json({ error: "Grounding document not found" });
     return;
   }
 
-  res.json(doc);
+  if (doc.tenantId !== null && doc.tenantId !== req.tenantId!) {
+    res.status(404).json({ error: "Grounding document not found" });
+    return;
+  }
+
+  res.json({ ...doc, scope: determineScope(doc) });
 });
 
 router.post("/grounding-docs", requireAuth, async (req, res): Promise<void> => {
@@ -101,9 +132,16 @@ router.post("/grounding-docs", requireAuth, async (req, res): Promise<void> => {
 
   const { name, description, category, content, fileType, originalFileName } = parsed.data;
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+  const marketId = parsed.data.marketId ?? null;
+
+  if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+    res.status(400).json({ error: "Invalid market" });
+    return;
+  }
 
   const [doc] = await db.insert(groundingDocumentsTable).values({
     tenantId: req.tenantId!,
+    marketId,
     name,
     description: description || null,
     category,
@@ -114,7 +152,7 @@ router.post("/grounding-docs", requireAuth, async (req, res): Promise<void> => {
     isActive: true,
   }).returning();
 
-  res.status(201).json(doc);
+  res.status(201).json({ ...doc, scope: determineScope(doc) });
 });
 
 router.post("/grounding-docs/upload", requireAuth, upload.single("file"), async (req, res): Promise<void> => {
@@ -127,6 +165,12 @@ router.post("/grounding-docs/upload", requireAuth, upload.single("file"), async 
     const name = (req.body.name as string) || req.file.originalname.replace(/\.[^.]+$/, "");
     const description = (req.body.description as string) || null;
     const category = (req.body.category as string) || "brand_voice";
+    const marketId = req.body.marketId ? parseInt(req.body.marketId) : null;
+
+    if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+      res.status(400).json({ error: "Invalid market" });
+      return;
+    }
 
     const { text, fileType } = await extractTextFromFile(req.file.buffer, req.file.mimetype, req.file.originalname);
 
@@ -139,6 +183,7 @@ router.post("/grounding-docs/upload", requireAuth, upload.single("file"), async 
 
     const [doc] = await db.insert(groundingDocumentsTable).values({
       tenantId: req.tenantId!,
+      marketId: marketId && !isNaN(marketId) ? marketId : null,
       name,
       description,
       category,
@@ -149,7 +194,7 @@ router.post("/grounding-docs/upload", requireAuth, upload.single("file"), async 
       isActive: true,
     }).returning();
 
-    res.status(201).json(doc);
+    res.status(201).json({ ...doc, scope: determineScope(doc) });
   } catch (err: any) {
     logger.error({ err }, "Grounding doc upload failed");
     res.status(400).json({ error: err.message || "Failed to process uploaded file" });
@@ -182,7 +227,7 @@ router.patch("/grounding-docs/:id", requireAuth, async (req, res): Promise<void>
     return;
   }
 
-  res.json(doc);
+  res.json({ ...doc, scope: determineScope(doc) });
 });
 
 router.delete("/grounding-docs/:id", requireAuth, async (req, res): Promise<void> => {

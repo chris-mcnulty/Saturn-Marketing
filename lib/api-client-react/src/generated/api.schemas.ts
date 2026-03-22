@@ -65,9 +65,23 @@ export interface Tenant {
   createdAt: string;
 }
 
+export interface Market {
+  id: number;
+  tenantId: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  isDefault: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AuthResponse {
   user: User;
   tenant: Tenant;
+  markets: Market[];
+  defaultMarket?: Market | null;
 }
 
 export interface UpdateTenantBody {
@@ -97,6 +111,7 @@ export interface Category {
 
 export interface CreateCategoryBody {
   name: string;
+  marketId?: number;
 }
 
 export interface UpdateCategoryBody {
@@ -141,6 +156,7 @@ export interface CreateAssetBody {
   url: string;
   title?: string;
   categoryId?: number;
+  marketId?: number;
 }
 
 export interface UpdateAssetBody {
@@ -169,6 +185,7 @@ export interface BrandAssetCategory {
 
 export interface CreateBrandAssetCategoryBody {
   name: string;
+  marketId?: number;
 }
 
 export interface UpdateBrandAssetCategoryBody {
@@ -198,6 +215,7 @@ export interface CreateBrandAssetBody {
   description?: string;
   tags?: string;
   categoryId?: number;
+  marketId?: number;
 }
 
 export interface UpdateBrandAssetBody {
@@ -323,6 +341,7 @@ export interface CreateCampaignBody {
   businessHoursEnd?: string;
   includeSaturday?: boolean;
   includeSunday?: boolean;
+  marketId?: number;
 }
 
 export type UpdateCampaignBodyStatus =
@@ -375,6 +394,7 @@ export interface CreateSocialAccountBody {
   platform: string;
   accountName: string;
   socialPilotAccountId: string;
+  marketId?: number;
 }
 
 export interface UpdateSocialAccountBody {
@@ -397,9 +417,21 @@ export const GroundingDocCategory = {
   methodology: "methodology",
 } as const;
 
+export type GroundingDocScope =
+  (typeof GroundingDocScope)[keyof typeof GroundingDocScope];
+
+export const GroundingDocScope = {
+  system: "system",
+  tenant: "tenant",
+  market: "market",
+} as const;
+
 export interface GroundingDoc {
   id: number;
-  tenantId: number;
+  /** @nullable */
+  tenantId?: number | null;
+  /** @nullable */
+  marketId?: number | null;
   name: string;
   /** @nullable */
   description?: string | null;
@@ -411,6 +443,7 @@ export interface GroundingDoc {
   extractedText: string;
   wordCount: number;
   isActive: boolean;
+  scope?: GroundingDocScope;
   createdAt: string;
   updatedAt: string;
 }
@@ -432,6 +465,7 @@ export interface CreateGroundingDocBody {
   content: string;
   fileType?: string;
   originalFileName?: string;
+  marketId?: number;
 }
 
 export type UpdateGroundingDocBodyCategory =
@@ -531,6 +565,7 @@ export interface ProductTag {
 export interface CreateProductTagBody {
   name: string;
   description?: string;
+  marketId?: number;
 }
 
 export interface UpdateProductTagBody {
@@ -564,6 +599,7 @@ export interface GenerateEmailBody {
   tone?: GenerateEmailBodyTone;
   callToAction?: string;
   recipientContext?: string;
+  marketId?: number;
 }
 
 export interface GenerateEmailResponse {
@@ -584,6 +620,7 @@ export interface SaveEmailBody {
   tone?: string;
   callToAction?: string;
   recipientContext?: string;
+  marketId?: number;
 }
 
 export interface SavedEmail {
@@ -601,10 +638,48 @@ export interface SavedEmail {
   createdAt: string;
 }
 
+export interface CreateMarketBody {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateMarketBody {
+  name?: string;
+  description?: string;
+  status?: string;
+}
+
+export interface AdminCreateTenantBody {
+  name: string;
+  domain: string;
+  plan?: string;
+  status?: string;
+}
+
+export interface AdminUpdateTenantBody {
+  name?: string;
+  domain?: string;
+  plan?: string;
+  status?: string;
+}
+
+export type ListCategoriesParams = {
+  market_id?: number;
+};
+
 export type ListAssetsParams = {
   categoryId?: number;
   isActive?: boolean;
   search?: string;
+  market_id?: number;
+};
+
+export type ListBrandAssetCategoriesParams = {
+  market_id?: number;
+};
+
+export type ListProductTagsParams = {
+  market_id?: number;
 };
 
 export type ListProductTagAssets200 = {
@@ -621,8 +696,13 @@ export type SetProductTagAssets200 = {
   success: boolean;
 };
 
+export type ListBrandAssetsParams = {
+  market_id?: number;
+};
+
 export type ListCampaignsParams = {
   status?: ListCampaignsStatus;
+  market_id?: number;
 };
 
 export type ListCampaignsStatus =
@@ -635,6 +715,10 @@ export const ListCampaignsStatus = {
   paused: "paused",
   completed: "completed",
 } as const;
+
+export type ListSocialAccountsParams = {
+  market_id?: number;
+};
 
 export type UpdateGeneratedPostBody = {
   postContent?: string;
@@ -666,4 +750,12 @@ export type GetGeneratePostsStatus200 = {
   status: GetGeneratePostsStatus200Status;
   posts?: GeneratedPost[];
   error?: string;
+};
+
+export type ListGroundingDocsParams = {
+  market_id?: number;
+};
+
+export type ListSavedEmailsParams = {
+  market_id?: number;
 };

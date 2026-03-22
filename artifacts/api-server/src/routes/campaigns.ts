@@ -20,6 +20,7 @@ import {
   RemoveCampaignSocialAccountParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateMarketOwnership } from "../lib/validateMarket";
 
 const router: IRouter = Router();
 
@@ -48,6 +49,14 @@ router.get("/campaigns", requireAuth, async (req, res): Promise<void> => {
   const query = ListCampaignsQueryParams.safeParse(req.query);
 
   const conditions = [eq(campaignsTable.tenantId, req.tenantId!)];
+
+  if (req.query.market_id) {
+    const marketId = parseInt(req.query.market_id as string);
+    if (!isNaN(marketId)) {
+      conditions.push(eq(campaignsTable.marketId, marketId));
+    }
+  }
+
   if (query.success && query.data.status) {
     conditions.push(eq(campaignsTable.status, query.data.status));
   }
@@ -114,8 +123,15 @@ router.post("/campaigns", requireAuth, async (req, res): Promise<void> => {
     }
   }
 
+  const marketId = parsed.data.marketId ?? null;
+  if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+    res.status(400).json({ error: "Invalid market" });
+    return;
+  }
+
   const [campaign] = await db.insert(campaignsTable).values({
     tenantId: req.tenantId!,
+    marketId,
     name: parsed.data.name,
     description: parsed.data.description || null,
     startDate: parsed.data.startDate,

@@ -24,4 +24,5 @@ export interface CreateCampaignBody {
   businessHoursEnd?: string;
   includeSaturday?: boolean;
   includeSunday?: boolean;
+  marketId?: number;
 }

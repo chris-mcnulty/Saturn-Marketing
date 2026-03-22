@@ -2,10 +2,12 @@ import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { tenantsTable } from "./tenants";
+import { marketsTable } from "./markets";
 
 export const groundingDocumentsTable = pgTable("grounding_documents", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenantsTable.id, { onDelete: "cascade" }),
+  tenantId: integer("tenant_id").references(() => tenantsTable.id, { onDelete: "cascade" }),
+  marketId: integer("market_id").references(() => marketsTable.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   category: text("category").notNull().default("brand_voice"),

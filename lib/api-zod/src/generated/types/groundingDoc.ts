@@ -6,10 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GroundingDocCategory } from "./groundingDocCategory";
+import type { GroundingDocScope } from "./groundingDocScope";
 
 export interface GroundingDoc {
   id: number;
-  tenantId: number;
+  /** @nullable */
+  tenantId?: number | null;
+  /** @nullable */
+  marketId?: number | null;
   name: string;
   /** @nullable */
   description?: string | null;
@@ -21,6 +25,7 @@ export interface GroundingDoc {
   extractedText: string;
   wordCount: number;
   isActive: boolean;
+  scope?: GroundingDocScope;
   createdAt: Date;
   updatedAt: Date;
 }

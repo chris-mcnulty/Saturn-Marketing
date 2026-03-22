@@ -29,6 +29,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 ## Core Features
 
 - **Multi-tenant auth**: Domain-based tenant provisioning. First user for a domain becomes Domain Admin. Session-based with Orbit role system.
+- **Market Hierarchy**: Tenant → Market hierarchy. Each tenant auto-gets a default market on creation. All major entities (assets, brand assets, categories, campaigns, social accounts, product tags, generated posts/emails) have optional `marketId` FK. List endpoints accept `?market_id=` query filter. Auth responses include `markets[]` array. Full CRUD at `/markets`. Admin CRUD at `/admin/tenants` (POST/DELETE). Grounding docs support three-tier scoping: system (tenantId=null), tenant (tenantId set, marketId=null), market (both set); GET merges all applicable scopes when `market_id` is provided.
 - **Roles**: Global Admin, Domain Admin, Standard User, Consultant (from Orbit)
 - **Service Plans**: trial (60-day), free, pro, enterprise — with feature flags (JSONB), usage limits, user limits
 - **Domain Blocklist**: Blocks personal email providers (gmail, yahoo, hotmail, etc.) from self-registration

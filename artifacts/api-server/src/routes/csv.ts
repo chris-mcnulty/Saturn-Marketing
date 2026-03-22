@@ -198,7 +198,7 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
   const hasTwitter = socialAccounts.some(a => a.platform.toLowerCase() === "twitter" || a.platform.toLowerCase() === "x");
 
-  const groundingContext = await getGroundingContext(tenantId);
+  const groundingContext = await getGroundingContext(tenantId, campaign.marketId ?? undefined);
 
   const postingTimesArr = campaign.postingTimes
     ? campaign.postingTimes.split(",").map((t: string) => t.trim())
@@ -648,10 +648,14 @@ router.post("/campaigns/:id/generate-posts", requireAuth, async (req, res): Prom
         eq(generatedPostsTable.tenantId, tenantId),
       ));
 
+      const [campaign] = await db.select().from(campaignsTable)
+        .where(and(eq(campaignsTable.id, campaignId), eq(campaignsTable.tenantId, tenantId)));
+
       if (posts.length > 0) {
         const rows = posts.map(p => ({
           campaignId,
           tenantId,
+          marketId: campaign?.marketId ?? null,
           postContent: p.postContent,
           imageUrls: p.imageUrls,
           dateTime: p.dateTime,

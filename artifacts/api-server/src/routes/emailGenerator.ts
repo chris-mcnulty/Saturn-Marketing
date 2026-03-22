@@ -3,6 +3,7 @@ import { eq, and, inArray, desc } from "drizzle-orm";
 import { db, assetsTable, generatedEmailsTable } from "@workspace/db";
 import { GeneratePromotionalEmailBody, SaveGeneratedEmailBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateMarketOwnership } from "../lib/validateMarket";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getGroundingContext } from "../lib/groundingContext";
 import { logger } from "../lib/logger";
@@ -95,6 +96,7 @@ router.post("/email/generate", requireAuth, async (req, res): Promise<void> => {
 
   const { assetIds, platform, tone, callToAction, recipientContext } = parsed.data;
   const tenantId = req.tenantId!;
+  const marketId = parsed.data.marketId ?? undefined;
 
   try {
     const assets = await db
@@ -127,7 +129,7 @@ router.post("/email/generate", requireAuth, async (req, res): Promise<void> => {
       return;
     }
 
-    const groundingContext = await getGroundingContext(tenantId);
+    const groundingContext = await getGroundingContext(tenantId, marketId);
 
     const assetSummaries = assets
       .map((a) => {
@@ -256,10 +258,19 @@ router.post("/email/generate", requireAuth, async (req, res): Promise<void> => {
 router.get("/email/saved", requireAuth, async (req, res): Promise<void> => {
   const tenantId = req.tenantId!;
   try {
+    const conditions = [eq(generatedEmailsTable.tenantId, tenantId)];
+
+    if (req.query.market_id) {
+      const marketId = parseInt(req.query.market_id as string);
+      if (!isNaN(marketId)) {
+        conditions.push(eq(generatedEmailsTable.marketId, marketId));
+      }
+    }
+
     const emails = await db
       .select()
       .from(generatedEmailsTable)
-      .where(eq(generatedEmailsTable.tenantId, tenantId))
+      .where(and(...conditions))
       .orderBy(desc(generatedEmailsTable.createdAt));
     res.json(emails);
   } catch (err) {
@@ -279,10 +290,17 @@ router.post("/email/saved", requireAuth, async (req, res): Promise<void> => {
   const data = parsed.data;
 
   try {
+    const marketId = parsed.data.marketId ?? null;
+    if (marketId && !(await validateMarketOwnership(marketId, tenantId))) {
+      res.status(400).json({ error: "Invalid market" });
+      return;
+    }
+
     const [saved] = await db
       .insert(generatedEmailsTable)
       .values({
         tenantId,
+        marketId,
         platform: data.platform,
         emailBody: data.emailBody,
         subjectLineSuggestions: data.subjectLineSuggestions,

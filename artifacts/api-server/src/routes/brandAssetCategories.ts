@@ -8,12 +8,22 @@ import {
   DeleteBrandAssetCategoryParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateMarketOwnership } from "../lib/validateMarket";
 
 const router: IRouter = Router();
 
 router.get("/brand-asset-categories", requireAuth, async (req, res): Promise<void> => {
+  const conditions = [eq(brandAssetCategoriesTable.tenantId, req.tenantId!)];
+
+  if (req.query.market_id) {
+    const marketId = parseInt(req.query.market_id as string);
+    if (!isNaN(marketId)) {
+      conditions.push(eq(brandAssetCategoriesTable.marketId, marketId));
+    }
+  }
+
   const categories = await db.select().from(brandAssetCategoriesTable)
-    .where(eq(brandAssetCategoriesTable.tenantId, req.tenantId!))
+    .where(and(...conditions))
     .orderBy(brandAssetCategoriesTable.name);
   res.json(categories);
 });
@@ -25,8 +35,15 @@ router.post("/brand-asset-categories", requireAuth, async (req, res): Promise<vo
     return;
   }
 
+  const marketId = parsed.data.marketId ?? null;
+  if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+    res.status(400).json({ error: "Invalid market" });
+    return;
+  }
+
   const [category] = await db.insert(brandAssetCategoriesTable).values({
     tenantId: req.tenantId!,
+    marketId,
     name: parsed.data.name,
   }).returning();
 

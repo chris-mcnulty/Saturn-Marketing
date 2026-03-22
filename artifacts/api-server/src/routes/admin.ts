@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, usersTable, tenantsTable, servicePlansTable, domainBlocklistTable, tenantInvitesTable, consultantAccessTable } from "@workspace/db";
+import { db, usersTable, tenantsTable, servicePlansTable, domainBlocklistTable, tenantInvitesTable, consultantAccessTable, marketsTable } from "@workspace/db";
 import { requireAuth, requireAdmin, requireGlobalAdmin } from "../middlewares/auth";
 import { invalidatePlanCache, FEATURE_REGISTRY, FEATURE_CATEGORIES } from "../services/plan-policy";
 import crypto from "crypto";
@@ -110,6 +110,37 @@ router.get("/admin/tenants/:id", requireAuth, requireGlobalAdmin, async (req, re
   res.json(tenant);
 });
 
+router.post("/admin/tenants", requireAuth, requireGlobalAdmin, async (req, res): Promise<void> => {
+  const { name, domain, plan, status } = req.body;
+  if (!name || !domain) {
+    res.status(400).json({ error: "Name and domain are required" });
+    return;
+  }
+
+  const [existingTenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.domain, domain));
+  if (existingTenant) {
+    res.status(400).json({ error: "A tenant with this domain already exists" });
+    return;
+  }
+
+  const [tenant] = await db.insert(tenantsTable).values({
+    name,
+    domain,
+    plan: plan || "trial",
+    status: status || "active",
+  }).returning();
+
+  await db.insert(marketsTable).values({
+    tenantId: tenant.id,
+    name,
+    description: "Default market",
+    isDefault: true,
+    status: "active",
+  });
+
+  res.status(201).json(tenant);
+});
+
 router.patch("/admin/tenants/:id", requireAuth, requireGlobalAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params.id);
   const [tenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.id, id));
@@ -117,6 +148,15 @@ router.patch("/admin/tenants/:id", requireAuth, requireGlobalAdmin, async (req, 
 
   const [updated] = await db.update(tenantsTable).set(req.body).where(eq(tenantsTable.id, id)).returning();
   res.json(updated);
+});
+
+router.delete("/admin/tenants/:id", requireAuth, requireGlobalAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id);
+  const [tenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.id, id));
+  if (!tenant) { res.status(404).json({ error: "Tenant not found" }); return; }
+
+  await db.delete(tenantsTable).where(eq(tenantsTable.id, id));
+  res.sendStatus(204);
 });
 
 router.get("/admin/tenants/:id/users", requireAuth, requireGlobalAdmin, async (req, res): Promise<void> => {
@@ -153,7 +193,7 @@ router.patch("/admin/users/:id", requireAuth, requireGlobalAdmin, async (req, re
   const id = parseInt(req.params.id);
   const { role, status } = req.body;
 
-  const updates: Record<string, any> = {};
+  const updates: Record<string, string> = {};
   if (role) updates.role = role;
   if (status) updates.status = status;
 

@@ -16,4 +16,5 @@ export interface SaveEmailBody {
   tone?: string;
   callToAction?: string;
   recipientContext?: string;
+  marketId?: number;
 }

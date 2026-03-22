@@ -11,12 +11,22 @@ import {
   SetProductTagAssetsBody,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateMarketOwnership } from "../lib/validateMarket";
 
 const router: IRouter = Router();
 
 router.get("/product-tags", requireAuth, async (req, res): Promise<void> => {
+  const conditions = [eq(productTagsTable.tenantId, req.tenantId!)];
+
+  if (req.query.market_id) {
+    const marketId = parseInt(req.query.market_id as string);
+    if (!isNaN(marketId)) {
+      conditions.push(eq(productTagsTable.marketId, marketId));
+    }
+  }
+
   const tags = await db.select().from(productTagsTable)
-    .where(eq(productTagsTable.tenantId, req.tenantId!))
+    .where(and(...conditions))
     .orderBy(productTagsTable.name);
   res.json(tags);
 });
@@ -28,8 +38,15 @@ router.post("/product-tags", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const marketId = parsed.data.marketId ?? null;
+  if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+    res.status(400).json({ error: "Invalid market" });
+    return;
+  }
+
   const [tag] = await db.insert(productTagsTable).values({
     tenantId: req.tenantId!,
+    marketId,
     name: parsed.data.name,
     description: parsed.data.description || null,
   }).returning();

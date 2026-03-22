@@ -1,6 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedAdminUser } from "./seed";
+import { seedAdminUser, ensureDefaultMarkets } from "./seed";
 
 const rawPort = process.env["PORT"];
 
@@ -16,9 +16,11 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-seedAdminUser().catch((err) => {
-  logger.error({ err }, "Failed to seed admin user");
-});
+seedAdminUser()
+  .then(() => ensureDefaultMarkets())
+  .catch((err) => {
+    logger.error({ err }, "Failed to seed admin user or ensure default markets");
+  });
 
 app.listen(port, (err) => {
   if (err) {

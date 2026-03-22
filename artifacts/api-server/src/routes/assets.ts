@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
 import { extractContent } from "../lib/contentExtractor";
+import { validateMarketOwnership } from "../lib/validateMarket";
 
 const router: IRouter = Router();
 
@@ -101,6 +102,7 @@ function escapeCsvField(value: string): string {
 const assetSelect = {
   id: assetsTable.id,
   tenantId: assetsTable.tenantId,
+  marketId: assetsTable.marketId,
   url: assetsTable.url,
   title: assetsTable.title,
   categoryId: assetsTable.categoryId,
@@ -119,6 +121,13 @@ router.get("/assets", requireAuth, async (req, res): Promise<void> => {
   const query = ListAssetsQueryParams.safeParse(req.query);
 
   const conditions = [eq(assetsTable.tenantId, req.tenantId!)];
+
+  if (req.query.market_id) {
+    const marketId = parseInt(req.query.market_id as string);
+    if (!isNaN(marketId)) {
+      conditions.push(eq(assetsTable.marketId, marketId));
+    }
+  }
 
   if (query.success && query.data.categoryId) {
     conditions.push(eq(assetsTable.categoryId, query.data.categoryId));
@@ -148,8 +157,15 @@ router.post("/assets", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  const marketId = parsed.data.marketId ?? null;
+  if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+    res.status(400).json({ error: "Invalid market" });
+    return;
+  }
+
   const [asset] = await db.insert(assetsTable).values({
     tenantId: req.tenantId!,
+    marketId,
     url: parsed.data.url,
     title: parsed.data.title || null,
     categoryId: parsed.data.categoryId || null,
@@ -166,10 +182,19 @@ router.post("/assets", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.get("/assets/export-csv", requireAuth, async (req, res): Promise<void> => {
+  const conditions = [eq(assetsTable.tenantId, req.tenantId!)];
+
+  if (req.query.market_id) {
+    const marketId = parseInt(req.query.market_id as string);
+    if (!isNaN(marketId)) {
+      conditions.push(eq(assetsTable.marketId, marketId));
+    }
+  }
+
   const assets = await db.select(assetSelect)
     .from(assetsTable)
     .leftJoin(categoriesTable, eq(assetsTable.categoryId, categoriesTable.id))
-    .where(eq(assetsTable.tenantId, req.tenantId!))
+    .where(and(...conditions))
     .orderBy(assetsTable.createdAt);
 
   const headers = ["URL", "Title", "Description", "Category", "Image URL", "ACTIVE", "Captured"];

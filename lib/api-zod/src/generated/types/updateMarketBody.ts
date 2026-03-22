@@ -6,11 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateBrandAssetBody {
-  imageUrl: string;
-  title?: string;
+export interface UpdateMarketBody {
+  name?: string;
   description?: string;
-  tags?: string;
-  categoryId?: number;
-  marketId?: number;
+  status?: string;
 }

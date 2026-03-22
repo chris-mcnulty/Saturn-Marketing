@@ -4,10 +4,12 @@ import { z } from "zod/v4";
 import { tenantsTable } from "./tenants";
 import { assetsTable } from "./assets";
 import { brandAssetsTable } from "./brandAssets";
+import { marketsTable } from "./markets";
 
 export const productTagsTable = pgTable("product_tags", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenantsTable.id, { onDelete: "cascade" }),
+  marketId: integer("market_id").references(() => marketsTable.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

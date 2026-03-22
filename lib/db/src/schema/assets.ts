@@ -3,10 +3,12 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { tenantsTable } from "./tenants";
 import { categoriesTable } from "./categories";
+import { marketsTable } from "./markets";
 
 export const assetsTable = pgTable("assets", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenantsTable.id, { onDelete: "cascade" }),
+  marketId: integer("market_id").references(() => marketsTable.id, { onDelete: "set null" }),
   url: text("url").notNull(),
   title: text("title"),
   categoryId: integer("category_id").references(() => categoriesTable.id, { onDelete: "set null" }),

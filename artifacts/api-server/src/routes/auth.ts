@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { eq, desc } from "drizzle-orm";
-import { db, usersTable, tenantsTable, domainBlocklistTable, emailVerificationTokensTable } from "@workspace/db";
+import { db, usersTable, tenantsTable, domainBlocklistTable, emailVerificationTokensTable, marketsTable } from "@workspace/db";
 import {
   RegisterBody,
   LoginBody,
@@ -11,7 +11,11 @@ import crypto from "crypto";
 
 const router: IRouter = Router();
 
-function formatAuthResponse(user: typeof usersTable.$inferSelect, tenant: typeof tenantsTable.$inferSelect) {
+function formatAuthResponse(
+  user: typeof usersTable.$inferSelect,
+  tenant: typeof tenantsTable.$inferSelect,
+  markets: (typeof marketsTable.$inferSelect)[] = []
+) {
   return {
     user: {
       id: user.id,
@@ -33,6 +37,30 @@ function formatAuthResponse(user: typeof usersTable.$inferSelect, tenant: typeof
       status: tenant.status,
       createdAt: tenant.createdAt.toISOString(),
     },
+    markets: markets.map(m => ({
+      id: m.id,
+      tenantId: m.tenantId,
+      name: m.name,
+      description: m.description,
+      isDefault: m.isDefault,
+      status: m.status,
+      createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+    })),
+    defaultMarket: (() => {
+      const def = markets.find(m => m.isDefault);
+      if (!def) return null;
+      return {
+        id: def.id,
+        tenantId: def.tenantId,
+        name: def.name,
+        description: def.description,
+        isDefault: def.isDefault,
+        status: def.status,
+        createdAt: def.createdAt.toISOString(),
+        updatedAt: def.updatedAt.toISOString(),
+      };
+    })(),
   };
 }
 
@@ -84,6 +112,14 @@ router.post("/auth/register", async (req, res): Promise<void> => {
         userCount: 0,
       }).returning();
       tenant = newTenant;
+
+      await db.insert(marketsTable).values({
+        tenantId: tenant.id,
+        name: organizationName,
+        description: "Default market",
+        isDefault: true,
+        status: "active",
+      });
     }
 
     const [user] = await db.insert(usersTable).values({
@@ -106,6 +142,9 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       }
     }
 
+    const markets = await db.select().from(marketsTable)
+      .where(eq(marketsTable.tenantId, tenant.id));
+
     req.session.regenerate((err) => {
       if (err) {
         res.status(500).json({ error: "Session error" });
@@ -113,7 +152,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       }
       req.session.userId = user.id;
       req.session.tenantId = tenant!.id;
-      res.status(201).json(formatAuthResponse(user, tenant!));
+      res.status(201).json(formatAuthResponse(user, tenant!, markets));
     });
   } catch (error: any) {
     console.error("Register error:", error);
@@ -159,6 +198,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       return;
     }
 
+    const markets = await db.select().from(marketsTable)
+      .where(eq(marketsTable.tenantId, tenant.id));
+
     req.session.regenerate((err) => {
       if (err) {
         res.status(500).json({ error: "Session error" });
@@ -166,7 +208,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       }
       req.session.userId = user.id;
       req.session.tenantId = user.tenantId;
-      res.json(formatAuthResponse(user, tenant));
+      res.json(formatAuthResponse(user, tenant, markets));
     });
   } catch (error: any) {
     console.error("Login error:", error);
@@ -179,7 +221,10 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!));
     const [tenant] = await db.select().from(tenantsTable).where(eq(tenantsTable.id, req.tenantId!));
 
-    res.json(formatAuthResponse(user, tenant));
+    const markets = await db.select().from(marketsTable)
+      .where(eq(marketsTable.tenantId, req.tenantId!));
+
+    res.json(formatAuthResponse(user, tenant, markets));
   } catch (error: any) {
     console.error("GetMe error:", error);
     res.status(500).json({ error: "Failed to get user" });

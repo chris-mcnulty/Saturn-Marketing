@@ -15,4 +15,5 @@ export interface GenerateEmailBody {
   tone?: GenerateEmailBodyTone;
   callToAction?: string;
   recipientContext?: string;
+  marketId?: number;
 }

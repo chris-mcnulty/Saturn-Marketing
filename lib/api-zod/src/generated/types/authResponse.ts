@@ -5,10 +5,13 @@
  * Multi-Tenant Marketing Application API
  * OpenAPI spec version: 0.1.0
  */
+import type { Market } from "./market";
 import type { Tenant } from "./tenant";
 import type { User } from "./user";
 
 export interface AuthResponse {
   user: User;
   tenant: Tenant;
+  markets: Market[];
+  defaultMarket?: Market | null;
 }

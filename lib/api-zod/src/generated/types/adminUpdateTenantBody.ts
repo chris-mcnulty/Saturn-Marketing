@@ -6,7 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateCategoryBody {
-  name: string;
-  marketId?: number;
+export interface AdminUpdateTenantBody {
+  name?: string;
+  domain?: string;
+  plan?: string;
+  status?: string;
 }

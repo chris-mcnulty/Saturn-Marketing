@@ -61,6 +61,33 @@ export const LoginResponse = zod.object({
     status: zod.string().optional(),
     createdAt: zod.date(),
   }),
+  markets: zod.array(
+    zod.object({
+      id: zod.number(),
+      tenantId: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      isDefault: zod.boolean(),
+      status: zod.string(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+  defaultMarket: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        tenantId: zod.number(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        isDefault: zod.boolean(),
+        status: zod.string(),
+        createdAt: zod.date(),
+        updatedAt: zod.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
 });
 
 /**
@@ -92,6 +119,33 @@ export const GetMeResponse = zod.object({
     status: zod.string().optional(),
     createdAt: zod.date(),
   }),
+  markets: zod.array(
+    zod.object({
+      id: zod.number(),
+      tenantId: zod.number(),
+      name: zod.string(),
+      description: zod.string().nullish(),
+      isDefault: zod.boolean(),
+      status: zod.string(),
+      createdAt: zod.date(),
+      updatedAt: zod.date(),
+    }),
+  ),
+  defaultMarket: zod
+    .union([
+      zod.object({
+        id: zod.number(),
+        tenantId: zod.number(),
+        name: zod.string(),
+        description: zod.string().nullish(),
+        isDefault: zod.boolean(),
+        status: zod.string(),
+        createdAt: zod.date(),
+        updatedAt: zod.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
 });
 
 /**
@@ -104,6 +158,10 @@ export const LogoutResponse = zod.object({
 /**
  * @summary List categories for the current tenant
  */
+export const ListCategoriesQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListCategoriesResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -117,6 +175,7 @@ export const ListCategoriesResponse = zod.array(ListCategoriesResponseItem);
  */
 export const CreateCategoryBody = zod.object({
   name: zod.string(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -151,6 +210,7 @@ export const ListAssetsQueryParams = zod.object({
   categoryId: zod.coerce.number().optional(),
   isActive: zod.coerce.boolean().optional(),
   search: zod.coerce.string().optional(),
+  market_id: zod.coerce.number().optional(),
 });
 
 export const ListAssetsResponseItem = zod.object({
@@ -178,6 +238,7 @@ export const CreateAssetBody = zod.object({
   url: zod.string(),
   title: zod.string().optional(),
   categoryId: zod.number().optional(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -340,6 +401,10 @@ export const ConfirmAssetsImportResponse = zod.object({
 /**
  * @summary List brand asset categories for the current tenant
  */
+export const ListBrandAssetCategoriesQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListBrandAssetCategoriesResponseItem = zod.object({
   id: zod.number(),
   tenantId: zod.number(),
@@ -355,6 +420,7 @@ export const ListBrandAssetCategoriesResponse = zod.array(
  */
 export const CreateBrandAssetCategoryBody = zod.object({
   name: zod.string(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -385,6 +451,10 @@ export const DeleteBrandAssetCategoryParams = zod.object({
 /**
  * @summary List product/service tags for the current tenant
  */
+export const ListProductTagsQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListProductTagsResponseItem = zod.object({
   id: zod.number(),
   tenantId: zod.number(),
@@ -400,6 +470,7 @@ export const ListProductTagsResponse = zod.array(ListProductTagsResponseItem);
 export const CreateProductTagBody = zod.object({
   name: zod.string(),
   description: zod.string().optional(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -460,6 +531,10 @@ export const SetProductTagAssetsResponse = zod.object({
 /**
  * @summary List brand-approved visual assets
  */
+export const ListBrandAssetsQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListBrandAssetsResponseItem = zod.object({
   id: zod.number(),
   tenantId: zod.number(),
@@ -482,6 +557,7 @@ export const CreateBrandAssetBody = zod.object({
   description: zod.string().optional(),
   tags: zod.string().optional(),
   categoryId: zod.number().optional(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -525,6 +601,7 @@ export const ListCampaignsQueryParams = zod.object({
   status: zod
     .enum(["draft", "scheduled", "active", "paused", "completed"])
     .optional(),
+  market_id: zod.coerce.number().optional(),
 });
 
 export const ListCampaignsResponseItem = zod.object({
@@ -569,6 +646,7 @@ export const CreateCampaignBody = zod.object({
   businessHoursEnd: zod.string().optional(),
   includeSaturday: zod.boolean().optional(),
   includeSunday: zod.boolean().optional(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -796,6 +874,10 @@ export const RemoveCampaignAssetParams = zod.object({
 /**
  * @summary List social accounts for the current tenant
  */
+export const ListSocialAccountsQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListSocialAccountsResponseItem = zod.object({
   id: zod.number(),
   tenantId: zod.number(),
@@ -815,6 +897,7 @@ export const CreateSocialAccountBody = zod.object({
   platform: zod.string(),
   accountName: zod.string(),
   socialPilotAccountId: zod.string(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -996,9 +1079,14 @@ export const RemoveCampaignSocialAccountParams = zod.object({
 /**
  * @summary List grounding documents for the current tenant
  */
+export const ListGroundingDocsQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListGroundingDocsResponseItem = zod.object({
   id: zod.number(),
-  tenantId: zod.number(),
+  tenantId: zod.number().nullish(),
+  marketId: zod.number().nullish(),
   name: zod.string(),
   description: zod.string().nullish(),
   category: zod.enum([
@@ -1012,6 +1100,7 @@ export const ListGroundingDocsResponseItem = zod.object({
   extractedText: zod.string(),
   wordCount: zod.number(),
   isActive: zod.boolean(),
+  scope: zod.enum(["system", "tenant", "market"]).optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1034,6 +1123,7 @@ export const CreateGroundingDocBody = zod.object({
   content: zod.string(),
   fileType: zod.string().optional(),
   originalFileName: zod.string().optional(),
+  marketId: zod.number().optional(),
 });
 
 /**
@@ -1045,7 +1135,8 @@ export const GetGroundingDocParams = zod.object({
 
 export const GetGroundingDocResponse = zod.object({
   id: zod.number(),
-  tenantId: zod.number(),
+  tenantId: zod.number().nullish(),
+  marketId: zod.number().nullish(),
   name: zod.string(),
   description: zod.string().nullish(),
   category: zod.enum([
@@ -1059,6 +1150,7 @@ export const GetGroundingDocResponse = zod.object({
   extractedText: zod.string(),
   wordCount: zod.number(),
   isActive: zod.boolean(),
+  scope: zod.enum(["system", "tenant", "market"]).optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1086,7 +1178,8 @@ export const UpdateGroundingDocBody = zod.object({
 
 export const UpdateGroundingDocResponse = zod.object({
   id: zod.number(),
-  tenantId: zod.number(),
+  tenantId: zod.number().nullish(),
+  marketId: zod.number().nullish(),
   name: zod.string(),
   description: zod.string().nullish(),
   category: zod.enum([
@@ -1100,6 +1193,7 @@ export const UpdateGroundingDocResponse = zod.object({
   extractedText: zod.string(),
   wordCount: zod.number(),
   isActive: zod.boolean(),
+  scope: zod.enum(["system", "tenant", "market"]).optional(),
   createdAt: zod.date(),
   updatedAt: zod.date(),
 });
@@ -1214,6 +1308,7 @@ export const GeneratePromotionalEmailBody = zod.object({
   tone: zod.enum(["professional", "friendly", "urgent"]).optional(),
   callToAction: zod.string().optional(),
   recipientContext: zod.string().optional(),
+  marketId: zod.number().optional(),
 });
 
 export const GeneratePromotionalEmailResponse = zod.object({
@@ -1227,6 +1322,10 @@ export const GeneratePromotionalEmailResponse = zod.object({
 /**
  * @summary List saved generated emails for the current tenant
  */
+export const ListSavedEmailsQueryParams = zod.object({
+  market_id: zod.coerce.number().optional(),
+});
+
 export const ListSavedEmailsResponseItem = zod.object({
   id: zod.number(),
   tenantId: zod.number(),
@@ -1256,11 +1355,153 @@ export const SaveGeneratedEmailBody = zod.object({
   tone: zod.string().optional(),
   callToAction: zod.string().optional(),
   recipientContext: zod.string().optional(),
+  marketId: zod.number().optional(),
 });
 
 /**
  * @summary Delete a saved email
  */
 export const DeleteSavedEmailParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List markets for the current tenant
+ */
+export const ListMarketsResponseItem = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  isDefault: zod.boolean(),
+  status: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListMarketsResponse = zod.array(ListMarketsResponseItem);
+
+/**
+ * @summary Create a new market
+ */
+export const CreateMarketBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Get a market by ID
+ */
+export const GetMarketParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetMarketResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  isDefault: zod.boolean(),
+  status: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update a market
+ */
+export const UpdateMarketParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateMarketBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  status: zod.string().optional(),
+});
+
+export const UpdateMarketResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  isDefault: zod.boolean(),
+  status: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete a market
+ */
+export const DeleteMarketParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all tenants (Global Admin only)
+ */
+export const AdminListTenantsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  domain: zod.string().optional(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
+  createdAt: zod.date(),
+});
+export const AdminListTenantsResponse = zod.array(AdminListTenantsResponseItem);
+
+/**
+ * @summary Create a new tenant (Global Admin only)
+ */
+export const AdminCreateTenantBody = zod.object({
+  name: zod.string(),
+  domain: zod.string(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
+});
+
+/**
+ * @summary Get a single tenant by ID (Global Admin only)
+ */
+export const AdminGetTenantParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminGetTenantResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  domain: zod.string().optional(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Update a tenant (Global Admin only)
+ */
+export const AdminUpdateTenantParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminUpdateTenantBody = zod.object({
+  name: zod.string().optional(),
+  domain: zod.string().optional(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
+});
+
+export const AdminUpdateTenantResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  domain: zod.string().optional(),
+  plan: zod.string().optional(),
+  status: zod.string().optional(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Delete a tenant (Global Admin only)
+ */
+export const AdminDeleteTenantParams = zod.object({
   id: zod.coerce.number(),
 });

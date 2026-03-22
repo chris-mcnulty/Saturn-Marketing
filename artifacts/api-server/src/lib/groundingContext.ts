@@ -1,19 +1,31 @@
 import { db, groundingDocumentsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 
-export async function getGroundingContext(tenantId: number): Promise<string> {
+export async function getGroundingContext(tenantId: number, marketId?: number): Promise<string> {
   let docs;
   try {
+    const conditions = [eq(groundingDocumentsTable.isActive, true)];
+
+    if (marketId) {
+      conditions.push(or(
+        and(isNull(groundingDocumentsTable.tenantId), isNull(groundingDocumentsTable.marketId)),
+        and(eq(groundingDocumentsTable.tenantId, tenantId), isNull(groundingDocumentsTable.marketId)),
+        and(eq(groundingDocumentsTable.tenantId, tenantId), eq(groundingDocumentsTable.marketId, marketId))
+      )!);
+    } else {
+      conditions.push(or(
+        and(isNull(groundingDocumentsTable.tenantId), isNull(groundingDocumentsTable.marketId)),
+        and(eq(groundingDocumentsTable.tenantId, tenantId), isNull(groundingDocumentsTable.marketId))
+      )!);
+    }
+
     docs = await db.select({
       name: groundingDocumentsTable.name,
       category: groundingDocumentsTable.category,
       extractedText: groundingDocumentsTable.extractedText,
     })
       .from(groundingDocumentsTable)
-      .where(and(
-        eq(groundingDocumentsTable.tenantId, tenantId),
-        eq(groundingDocumentsTable.isActive, true)
-      ));
+      .where(and(...conditions));
   } catch {
     return "";
   }

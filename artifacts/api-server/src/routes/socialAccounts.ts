@@ -8,12 +8,22 @@ import {
   DeleteSocialAccountParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { validateMarketOwnership } from "../lib/validateMarket";
 
 const router: IRouter = Router();
 
 router.get("/social-accounts", requireAuth, async (req, res): Promise<void> => {
+  const conditions = [eq(socialAccountsTable.tenantId, req.tenantId!)];
+
+  if (req.query.market_id) {
+    const marketId = parseInt(req.query.market_id as string);
+    if (!isNaN(marketId)) {
+      conditions.push(eq(socialAccountsTable.marketId, marketId));
+    }
+  }
+
   const accounts = await db.select().from(socialAccountsTable)
-    .where(eq(socialAccountsTable.tenantId, req.tenantId!))
+    .where(and(...conditions))
     .orderBy(socialAccountsTable.createdAt);
   res.json(accounts);
 });
@@ -25,8 +35,15 @@ router.post("/social-accounts", requireAuth, async (req, res): Promise<void> => 
     return;
   }
 
+  const marketId = parsed.data.marketId ?? null;
+  if (marketId && !(await validateMarketOwnership(marketId, req.tenantId!))) {
+    res.status(400).json({ error: "Invalid market" });
+    return;
+  }
+
   const [account] = await db.insert(socialAccountsTable).values({
     tenantId: req.tenantId!,
+    marketId,
     platform: parsed.data.platform,
     accountName: parsed.data.accountName,
     socialPilotAccountId: parsed.data.socialPilotAccountId,

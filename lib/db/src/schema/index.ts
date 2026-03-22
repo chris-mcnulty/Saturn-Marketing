@@ -1,4 +1,5 @@
 export * from "./tenants";
+export * from "./markets";
 export * from "./users";
 export * from "./categories";
 export * from "./assets";

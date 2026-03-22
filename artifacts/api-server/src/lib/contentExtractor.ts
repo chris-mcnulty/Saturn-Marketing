@@ -93,7 +93,7 @@ export async function extractContent(assetId: number): Promise<void> {
 
     if (textContent) {
       try {
-        const groundingContext = await getGroundingContext(asset.tenantId);
+        const groundingContext = await getGroundingContext(asset.tenantId, asset.marketId ?? undefined);
         const basePrompt = `You are a social media marketing expert writing post captions that will be published directly to social media platforms.
 
 IMPORTANT RULES:

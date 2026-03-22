@@ -2,10 +2,12 @@ import { pgTable, serial, integer, text, timestamp, jsonb } from "drizzle-orm/pg
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { tenantsTable } from "./tenants";
+import { marketsTable } from "./markets";
 
 export const generatedEmailsTable = pgTable("generated_emails", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenantsTable.id, { onDelete: "cascade" }),
+  marketId: integer("market_id").references(() => marketsTable.id, { onDelete: "set null" }),
   platform: text("platform").notNull(),
   emailBody: text("email_body").notNull(),
   subjectLineSuggestions: jsonb("subject_line_suggestions").notNull().$type<string[]>(),

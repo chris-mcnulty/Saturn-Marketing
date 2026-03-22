@@ -5,9 +5,7 @@
  * Multi-Tenant Marketing Application API
  * OpenAPI spec version: 0.1.0
  */
-import type { ListCampaignsStatus } from "./listCampaignsStatus";
 
-export type ListCampaignsParams = {
-  status?: ListCampaignsStatus;
+export type ListSavedEmailsParams = {
   market_id?: number;
 };

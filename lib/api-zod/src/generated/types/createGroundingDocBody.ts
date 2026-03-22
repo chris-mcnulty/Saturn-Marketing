@@ -14,4 +14,5 @@ export interface CreateGroundingDocBody {
   content: string;
   fileType?: string;
   originalFileName?: string;
+  marketId?: number;
 }

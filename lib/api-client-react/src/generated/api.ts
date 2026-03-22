@@ -19,6 +19,8 @@ import type {
 import type {
   AddCampaignAssetBody,
   AddCampaignSocialAccountBody,
+  AdminCreateTenantBody,
+  AdminUpdateTenantBody,
   Asset,
   AuthResponse,
   BrandAsset,
@@ -34,6 +36,7 @@ import type {
   CreateCampaignBody,
   CreateCategoryBody,
   CreateGroundingDocBody,
+  CreateMarketBody,
   CreateProductTagBody,
   CreateSocialAccountBody,
   ErrorResponse,
@@ -49,9 +52,17 @@ import type {
   ImportCsvValidationResult,
   ImportResultSummary,
   ListAssetsParams,
+  ListBrandAssetCategoriesParams,
+  ListBrandAssetsParams,
   ListCampaignsParams,
+  ListCategoriesParams,
+  ListGroundingDocsParams,
   ListProductTagAssets200,
+  ListProductTagsParams,
+  ListSavedEmailsParams,
+  ListSocialAccountsParams,
   LoginBody,
+  Market,
   MessageResponse,
   ProductTag,
   RegisterBody,
@@ -69,6 +80,7 @@ import type {
   UpdateCategoryBody,
   UpdateGeneratedPostBody,
   UpdateGroundingDocBody,
+  UpdateMarketBody,
   UpdateProductTagBody,
   UpdateSocialAccountBody,
   UpdateTenantBody,
@@ -480,41 +492,57 @@ export const useLogout = <
 /**
  * @summary List categories for the current tenant
  */
-export const getListCategoriesUrl = () => {
-  return `/api/categories`;
+export const getListCategoriesUrl = (params?: ListCategoriesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/categories?${stringifiedParams}`
+    : `/api/categories`;
 };
 
 export const listCategories = async (
+  params?: ListCategoriesParams,
   options?: RequestInit,
 ): Promise<Category[]> => {
-  return customFetch<Category[]>(getListCategoriesUrl(), {
+  return customFetch<Category[]>(getListCategoriesUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListCategoriesQueryKey = () => {
-  return [`/api/categories`] as const;
+export const getListCategoriesQueryKey = (params?: ListCategoriesParams) => {
+  return [`/api/categories`, ...(params ? [params] : [])] as const;
 };
 
 export const getListCategoriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listCategories>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listCategories>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListCategoriesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCategories>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListCategoriesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListCategoriesQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listCategories>>> = ({
     signal,
-  }) => listCategories({ signal, ...requestOptions });
+  }) => listCategories(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listCategories>>,
@@ -535,15 +563,18 @@ export type ListCategoriesQueryError = ErrorType<unknown>;
 export function useListCategories<
   TData = Awaited<ReturnType<typeof listCategories>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listCategories>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListCategoriesQueryOptions(options);
+>(
+  params?: ListCategoriesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCategories>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCategoriesQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1579,42 +1610,66 @@ export const useConfirmAssetsImport = <
 /**
  * @summary List brand asset categories for the current tenant
  */
-export const getListBrandAssetCategoriesUrl = () => {
-  return `/api/brand-asset-categories`;
+export const getListBrandAssetCategoriesUrl = (
+  params?: ListBrandAssetCategoriesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/brand-asset-categories?${stringifiedParams}`
+    : `/api/brand-asset-categories`;
 };
 
 export const listBrandAssetCategories = async (
+  params?: ListBrandAssetCategoriesParams,
   options?: RequestInit,
 ): Promise<BrandAssetCategory[]> => {
-  return customFetch<BrandAssetCategory[]>(getListBrandAssetCategoriesUrl(), {
-    ...options,
-    method: "GET",
-  });
+  return customFetch<BrandAssetCategory[]>(
+    getListBrandAssetCategoriesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getListBrandAssetCategoriesQueryKey = () => {
-  return [`/api/brand-asset-categories`] as const;
+export const getListBrandAssetCategoriesQueryKey = (
+  params?: ListBrandAssetCategoriesParams,
+) => {
+  return [`/api/brand-asset-categories`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBrandAssetCategoriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listBrandAssetCategories>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listBrandAssetCategories>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListBrandAssetCategoriesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBrandAssetCategories>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListBrandAssetCategoriesQueryKey();
+    queryOptions?.queryKey ?? getListBrandAssetCategoriesQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listBrandAssetCategories>>
-  > = ({ signal }) => listBrandAssetCategories({ signal, ...requestOptions });
+  > = ({ signal }) =>
+    listBrandAssetCategories(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listBrandAssetCategories>>,
@@ -1635,15 +1690,18 @@ export type ListBrandAssetCategoriesQueryError = ErrorType<unknown>;
 export function useListBrandAssetCategories<
   TData = Awaited<ReturnType<typeof listBrandAssetCategories>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listBrandAssetCategories>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListBrandAssetCategoriesQueryOptions(options);
+>(
+  params?: ListBrandAssetCategoriesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBrandAssetCategories>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBrandAssetCategoriesQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -1914,41 +1972,57 @@ export const useDeleteBrandAssetCategory = <
 /**
  * @summary List product/service tags for the current tenant
  */
-export const getListProductTagsUrl = () => {
-  return `/api/product-tags`;
+export const getListProductTagsUrl = (params?: ListProductTagsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/product-tags?${stringifiedParams}`
+    : `/api/product-tags`;
 };
 
 export const listProductTags = async (
+  params?: ListProductTagsParams,
   options?: RequestInit,
 ): Promise<ProductTag[]> => {
-  return customFetch<ProductTag[]>(getListProductTagsUrl(), {
+  return customFetch<ProductTag[]>(getListProductTagsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListProductTagsQueryKey = () => {
-  return [`/api/product-tags`] as const;
+export const getListProductTagsQueryKey = (params?: ListProductTagsParams) => {
+  return [`/api/product-tags`, ...(params ? [params] : [])] as const;
 };
 
 export const getListProductTagsQueryOptions = <
   TData = Awaited<ReturnType<typeof listProductTags>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listProductTags>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListProductTagsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProductTags>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListProductTagsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListProductTagsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listProductTags>>> = ({
     signal,
-  }) => listProductTags({ signal, ...requestOptions });
+  }) => listProductTags(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listProductTags>>,
@@ -1969,15 +2043,18 @@ export type ListProductTagsQueryError = ErrorType<unknown>;
 export function useListProductTags<
   TData = Awaited<ReturnType<typeof listProductTags>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listProductTags>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListProductTagsQueryOptions(options);
+>(
+  params?: ListProductTagsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProductTags>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProductTagsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -2421,41 +2498,57 @@ export const useSetProductTagAssets = <
 /**
  * @summary List brand-approved visual assets
  */
-export const getListBrandAssetsUrl = () => {
-  return `/api/brand-assets`;
+export const getListBrandAssetsUrl = (params?: ListBrandAssetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/brand-assets?${stringifiedParams}`
+    : `/api/brand-assets`;
 };
 
 export const listBrandAssets = async (
+  params?: ListBrandAssetsParams,
   options?: RequestInit,
 ): Promise<BrandAsset[]> => {
-  return customFetch<BrandAsset[]>(getListBrandAssetsUrl(), {
+  return customFetch<BrandAsset[]>(getListBrandAssetsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListBrandAssetsQueryKey = () => {
-  return [`/api/brand-assets`] as const;
+export const getListBrandAssetsQueryKey = (params?: ListBrandAssetsParams) => {
+  return [`/api/brand-assets`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBrandAssetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listBrandAssets>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listBrandAssets>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListBrandAssetsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBrandAssets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListBrandAssetsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListBrandAssetsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listBrandAssets>>> = ({
     signal,
-  }) => listBrandAssets({ signal, ...requestOptions });
+  }) => listBrandAssets(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listBrandAssets>>,
@@ -2476,15 +2569,18 @@ export type ListBrandAssetsQueryError = ErrorType<unknown>;
 export function useListBrandAssets<
   TData = Awaited<ReturnType<typeof listBrandAssets>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listBrandAssets>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListBrandAssetsQueryOptions(options);
+>(
+  params?: ListBrandAssetsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBrandAssets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBrandAssetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -3567,41 +3663,60 @@ export const useRemoveCampaignAsset = <
 /**
  * @summary List social accounts for the current tenant
  */
-export const getListSocialAccountsUrl = () => {
-  return `/api/social-accounts`;
+export const getListSocialAccountsUrl = (params?: ListSocialAccountsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/social-accounts?${stringifiedParams}`
+    : `/api/social-accounts`;
 };
 
 export const listSocialAccounts = async (
+  params?: ListSocialAccountsParams,
   options?: RequestInit,
 ): Promise<SocialAccount[]> => {
-  return customFetch<SocialAccount[]>(getListSocialAccountsUrl(), {
+  return customFetch<SocialAccount[]>(getListSocialAccountsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListSocialAccountsQueryKey = () => {
-  return [`/api/social-accounts`] as const;
+export const getListSocialAccountsQueryKey = (
+  params?: ListSocialAccountsParams,
+) => {
+  return [`/api/social-accounts`, ...(params ? [params] : [])] as const;
 };
 
 export const getListSocialAccountsQueryOptions = <
   TData = Awaited<ReturnType<typeof listSocialAccounts>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listSocialAccounts>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListSocialAccountsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSocialAccounts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListSocialAccountsQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getListSocialAccountsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listSocialAccounts>>
-  > = ({ signal }) => listSocialAccounts({ signal, ...requestOptions });
+  > = ({ signal }) => listSocialAccounts(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listSocialAccounts>>,
@@ -3622,15 +3737,18 @@ export type ListSocialAccountsQueryError = ErrorType<unknown>;
 export function useListSocialAccounts<
   TData = Awaited<ReturnType<typeof listSocialAccounts>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listSocialAccounts>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListSocialAccountsQueryOptions(options);
+>(
+  params?: ListSocialAccountsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSocialAccounts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSocialAccountsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -4802,41 +4920,60 @@ export const useRemoveCampaignSocialAccount = <
 /**
  * @summary List grounding documents for the current tenant
  */
-export const getListGroundingDocsUrl = () => {
-  return `/api/grounding-docs`;
+export const getListGroundingDocsUrl = (params?: ListGroundingDocsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/grounding-docs?${stringifiedParams}`
+    : `/api/grounding-docs`;
 };
 
 export const listGroundingDocs = async (
+  params?: ListGroundingDocsParams,
   options?: RequestInit,
 ): Promise<GroundingDoc[]> => {
-  return customFetch<GroundingDoc[]>(getListGroundingDocsUrl(), {
+  return customFetch<GroundingDoc[]>(getListGroundingDocsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListGroundingDocsQueryKey = () => {
-  return [`/api/grounding-docs`] as const;
+export const getListGroundingDocsQueryKey = (
+  params?: ListGroundingDocsParams,
+) => {
+  return [`/api/grounding-docs`, ...(params ? [params] : [])] as const;
 };
 
 export const getListGroundingDocsQueryOptions = <
   TData = Awaited<ReturnType<typeof listGroundingDocs>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listGroundingDocs>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListGroundingDocsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingDocs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListGroundingDocsQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getListGroundingDocsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listGroundingDocs>>
-  > = ({ signal }) => listGroundingDocs({ signal, ...requestOptions });
+  > = ({ signal }) => listGroundingDocs(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listGroundingDocs>>,
@@ -4857,15 +4994,18 @@ export type ListGroundingDocsQueryError = ErrorType<unknown>;
 export function useListGroundingDocs<
   TData = Awaited<ReturnType<typeof listGroundingDocs>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listGroundingDocs>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListGroundingDocsQueryOptions(options);
+>(
+  params?: ListGroundingDocsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingDocs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGroundingDocsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -5704,41 +5844,57 @@ export const useGeneratePromotionalEmail = <
 /**
  * @summary List saved generated emails for the current tenant
  */
-export const getListSavedEmailsUrl = () => {
-  return `/api/email/saved`;
+export const getListSavedEmailsUrl = (params?: ListSavedEmailsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/email/saved?${stringifiedParams}`
+    : `/api/email/saved`;
 };
 
 export const listSavedEmails = async (
+  params?: ListSavedEmailsParams,
   options?: RequestInit,
 ): Promise<SavedEmail[]> => {
-  return customFetch<SavedEmail[]>(getListSavedEmailsUrl(), {
+  return customFetch<SavedEmail[]>(getListSavedEmailsUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListSavedEmailsQueryKey = () => {
-  return [`/api/email/saved`] as const;
+export const getListSavedEmailsQueryKey = (params?: ListSavedEmailsParams) => {
+  return [`/api/email/saved`, ...(params ? [params] : [])] as const;
 };
 
 export const getListSavedEmailsQueryOptions = <
   TData = Awaited<ReturnType<typeof listSavedEmails>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listSavedEmails>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: ListSavedEmailsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSavedEmails>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListSavedEmailsQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListSavedEmailsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listSavedEmails>>> = ({
     signal,
-  }) => listSavedEmails({ signal, ...requestOptions });
+  }) => listSavedEmails(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listSavedEmails>>,
@@ -5759,15 +5915,18 @@ export type ListSavedEmailsQueryError = ErrorType<unknown>;
 export function useListSavedEmails<
   TData = Awaited<ReturnType<typeof listSavedEmails>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listSavedEmails>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListSavedEmailsQueryOptions(options);
+>(
+  params?: ListSavedEmailsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSavedEmails>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSavedEmailsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -5944,4 +6103,838 @@ export const useDeleteSavedEmail = <
   TContext
 > => {
   return useMutation(getDeleteSavedEmailMutationOptions(options));
+};
+
+/**
+ * @summary List markets for the current tenant
+ */
+export const getListMarketsUrl = () => {
+  return `/api/markets`;
+};
+
+export const listMarkets = async (options?: RequestInit): Promise<Market[]> => {
+  return customFetch<Market[]>(getListMarketsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMarketsQueryKey = () => {
+  return [`/api/markets`] as const;
+};
+
+export const getListMarketsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMarkets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMarkets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMarketsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMarkets>>> = ({
+    signal,
+  }) => listMarkets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMarkets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMarketsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMarkets>>
+>;
+export type ListMarketsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List markets for the current tenant
+ */
+
+export function useListMarkets<
+  TData = Awaited<ReturnType<typeof listMarkets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMarkets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMarketsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new market
+ */
+export const getCreateMarketUrl = () => {
+  return `/api/markets`;
+};
+
+export const createMarket = async (
+  createMarketBody: CreateMarketBody,
+  options?: RequestInit,
+): Promise<Market> => {
+  return customFetch<Market>(getCreateMarketUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createMarketBody),
+  });
+};
+
+export const getCreateMarketMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMarket>>,
+    TError,
+    { data: BodyType<CreateMarketBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createMarket>>,
+  TError,
+  { data: BodyType<CreateMarketBody> },
+  TContext
+> => {
+  const mutationKey = ["createMarket"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createMarket>>,
+    { data: BodyType<CreateMarketBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createMarket(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateMarketMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createMarket>>
+>;
+export type CreateMarketMutationBody = BodyType<CreateMarketBody>;
+export type CreateMarketMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new market
+ */
+export const useCreateMarket = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createMarket>>,
+    TError,
+    { data: BodyType<CreateMarketBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createMarket>>,
+  TError,
+  { data: BodyType<CreateMarketBody> },
+  TContext
+> => {
+  return useMutation(getCreateMarketMutationOptions(options));
+};
+
+/**
+ * @summary Get a market by ID
+ */
+export const getGetMarketUrl = (id: number) => {
+  return `/api/markets/${id}`;
+};
+
+export const getMarket = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Market> => {
+  return customFetch<Market>(getGetMarketUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMarketQueryKey = (id: number) => {
+  return [`/api/markets/${id}`] as const;
+};
+
+export const getGetMarketQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMarket>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarket>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMarketQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarket>>> = ({
+    signal,
+  }) => getMarket(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getMarket>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetMarketQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMarket>>
+>;
+export type GetMarketQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a market by ID
+ */
+
+export function useGetMarket<
+  TData = Awaited<ReturnType<typeof getMarket>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarket>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMarketQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a market
+ */
+export const getUpdateMarketUrl = (id: number) => {
+  return `/api/markets/${id}`;
+};
+
+export const updateMarket = async (
+  id: number,
+  updateMarketBody: UpdateMarketBody,
+  options?: RequestInit,
+): Promise<Market> => {
+  return customFetch<Market>(getUpdateMarketUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateMarketBody),
+  });
+};
+
+export const getUpdateMarketMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMarket>>,
+    TError,
+    { id: number; data: BodyType<UpdateMarketBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateMarket>>,
+  TError,
+  { id: number; data: BodyType<UpdateMarketBody> },
+  TContext
+> => {
+  const mutationKey = ["updateMarket"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateMarket>>,
+    { id: number; data: BodyType<UpdateMarketBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateMarket(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateMarketMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateMarket>>
+>;
+export type UpdateMarketMutationBody = BodyType<UpdateMarketBody>;
+export type UpdateMarketMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a market
+ */
+export const useUpdateMarket = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateMarket>>,
+    TError,
+    { id: number; data: BodyType<UpdateMarketBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateMarket>>,
+  TError,
+  { id: number; data: BodyType<UpdateMarketBody> },
+  TContext
+> => {
+  return useMutation(getUpdateMarketMutationOptions(options));
+};
+
+/**
+ * @summary Delete a market
+ */
+export const getDeleteMarketUrl = (id: number) => {
+  return `/api/markets/${id}`;
+};
+
+export const deleteMarket = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteMarketUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMarketMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMarket>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMarket>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteMarket"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMarket>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteMarket(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMarketMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMarket>>
+>;
+
+export type DeleteMarketMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a market
+ */
+export const useDeleteMarket = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMarket>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMarket>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteMarketMutationOptions(options));
+};
+
+/**
+ * @summary List all tenants (Global Admin only)
+ */
+export const getAdminListTenantsUrl = () => {
+  return `/api/admin/tenants`;
+};
+
+export const adminListTenants = async (
+  options?: RequestInit,
+): Promise<Tenant[]> => {
+  return customFetch<Tenant[]>(getAdminListTenantsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListTenantsQueryKey = () => {
+  return [`/api/admin/tenants`] as const;
+};
+
+export const getAdminListTenantsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListTenants>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTenants>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminListTenantsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListTenants>>
+  > = ({ signal }) => adminListTenants({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTenants>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListTenantsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListTenants>>
+>;
+export type AdminListTenantsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all tenants (Global Admin only)
+ */
+
+export function useAdminListTenants<
+  TData = Awaited<ReturnType<typeof adminListTenants>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof adminListTenants>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListTenantsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new tenant (Global Admin only)
+ */
+export const getAdminCreateTenantUrl = () => {
+  return `/api/admin/tenants`;
+};
+
+export const adminCreateTenant = async (
+  adminCreateTenantBody: AdminCreateTenantBody,
+  options?: RequestInit,
+): Promise<Tenant> => {
+  return customFetch<Tenant>(getAdminCreateTenantUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminCreateTenantBody),
+  });
+};
+
+export const getAdminCreateTenantMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateTenant>>,
+    TError,
+    { data: BodyType<AdminCreateTenantBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminCreateTenant>>,
+  TError,
+  { data: BodyType<AdminCreateTenantBody> },
+  TContext
+> => {
+  const mutationKey = ["adminCreateTenant"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminCreateTenant>>,
+    { data: BodyType<AdminCreateTenantBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adminCreateTenant(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminCreateTenantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminCreateTenant>>
+>;
+export type AdminCreateTenantMutationBody = BodyType<AdminCreateTenantBody>;
+export type AdminCreateTenantMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new tenant (Global Admin only)
+ */
+export const useAdminCreateTenant = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminCreateTenant>>,
+    TError,
+    { data: BodyType<AdminCreateTenantBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminCreateTenant>>,
+  TError,
+  { data: BodyType<AdminCreateTenantBody> },
+  TContext
+> => {
+  return useMutation(getAdminCreateTenantMutationOptions(options));
+};
+
+/**
+ * @summary Get a single tenant by ID (Global Admin only)
+ */
+export const getAdminGetTenantUrl = (id: number) => {
+  return `/api/admin/tenants/${id}`;
+};
+
+export const adminGetTenant = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Tenant> => {
+  return customFetch<Tenant>(getAdminGetTenantUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminGetTenantQueryKey = (id: number) => {
+  return [`/api/admin/tenants/${id}`] as const;
+};
+
+export const getAdminGetTenantQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminGetTenant>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetTenant>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAdminGetTenantQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof adminGetTenant>>> = ({
+    signal,
+  }) => adminGetTenant(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminGetTenant>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminGetTenantQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminGetTenant>>
+>;
+export type AdminGetTenantQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a single tenant by ID (Global Admin only)
+ */
+
+export function useAdminGetTenant<
+  TData = Awaited<ReturnType<typeof adminGetTenant>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetTenant>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminGetTenantQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a tenant (Global Admin only)
+ */
+export const getAdminUpdateTenantUrl = (id: number) => {
+  return `/api/admin/tenants/${id}`;
+};
+
+export const adminUpdateTenant = async (
+  id: number,
+  adminUpdateTenantBody: AdminUpdateTenantBody,
+  options?: RequestInit,
+): Promise<Tenant> => {
+  return customFetch<Tenant>(getAdminUpdateTenantUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminUpdateTenantBody),
+  });
+};
+
+export const getAdminUpdateTenantMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateTenant>>,
+    TError,
+    { id: number; data: BodyType<AdminUpdateTenantBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminUpdateTenant>>,
+  TError,
+  { id: number; data: BodyType<AdminUpdateTenantBody> },
+  TContext
+> => {
+  const mutationKey = ["adminUpdateTenant"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminUpdateTenant>>,
+    { id: number; data: BodyType<AdminUpdateTenantBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminUpdateTenant(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminUpdateTenantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminUpdateTenant>>
+>;
+export type AdminUpdateTenantMutationBody = BodyType<AdminUpdateTenantBody>;
+export type AdminUpdateTenantMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a tenant (Global Admin only)
+ */
+export const useAdminUpdateTenant = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminUpdateTenant>>,
+    TError,
+    { id: number; data: BodyType<AdminUpdateTenantBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminUpdateTenant>>,
+  TError,
+  { id: number; data: BodyType<AdminUpdateTenantBody> },
+  TContext
+> => {
+  return useMutation(getAdminUpdateTenantMutationOptions(options));
+};
+
+/**
+ * @summary Delete a tenant (Global Admin only)
+ */
+export const getAdminDeleteTenantUrl = (id: number) => {
+  return `/api/admin/tenants/${id}`;
+};
+
+export const adminDeleteTenant = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAdminDeleteTenantUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteTenantMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteTenant>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteTenant>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteTenant"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteTenant>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return adminDeleteTenant(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteTenantMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteTenant>>
+>;
+
+export type AdminDeleteTenantMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a tenant (Global Admin only)
+ */
+export const useAdminDeleteTenant = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteTenant>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteTenant>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteTenantMutationOptions(options));
 };

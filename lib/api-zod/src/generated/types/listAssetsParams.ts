@@ -10,4 +10,5 @@ export type ListAssetsParams = {
   categoryId?: number;
   isActive?: boolean;
   search?: string;
+  market_id?: number;
 };

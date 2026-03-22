@@ -9,4 +9,5 @@
 export interface CreateProductTagBody {
   name: string;
   description?: string;
+  marketId?: number;
 }

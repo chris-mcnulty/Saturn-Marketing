@@ -10,4 +10,5 @@ export interface CreateAssetBody {
   url: string;
   title?: string;
   categoryId?: number;
+  marketId?: number;
 }

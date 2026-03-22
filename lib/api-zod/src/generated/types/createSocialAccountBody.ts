@@ -10,4 +10,5 @@ export interface CreateSocialAccountBody {
   platform: string;
   accountName: string;
   socialPilotAccountId: string;
+  marketId?: number;
 }
