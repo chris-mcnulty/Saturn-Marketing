@@ -43,9 +43,8 @@ export async function seedAdminUser() {
     .values({
       email: adminEmail,
       passwordHash,
-      firstName: "Chris",
-      lastName: "McNulty",
-      role: "global_admin",
+      name: "Chris McNulty",
+      role: "Global Admin",
       tenantId: tenant.id,
       status: "active",
       authProvider: "local",
@@ -53,4 +52,27 @@ export async function seedAdminUser() {
     .returning();
 
   logger.info({ userId: user.id }, "Created admin user");
+
+  const adminEmail2 = "admin@synozur.com";
+  const [existingAdmin2] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, adminEmail2));
+
+  if (!existingAdmin2) {
+    const passwordHash2 = await bcrypt.hash(adminPassword, 10);
+    const [user2] = await db
+      .insert(usersTable)
+      .values({
+        email: adminEmail2,
+        passwordHash: passwordHash2,
+        name: "Synozur Admin",
+        role: "Global Admin",
+        tenantId: tenant.id,
+        status: "active",
+        authProvider: "local",
+      })
+      .returning();
+    logger.info({ userId: user2.id }, "Created secondary admin user");
+  }
 }
