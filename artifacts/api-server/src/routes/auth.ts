@@ -47,20 +47,6 @@ function formatAuthResponse(
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
     })),
-    defaultMarket: (() => {
-      const def = markets.find(m => m.isDefault);
-      if (!def) return null;
-      return {
-        id: def.id,
-        tenantId: def.tenantId,
-        name: def.name,
-        description: def.description,
-        isDefault: def.isDefault,
-        status: def.status,
-        createdAt: def.createdAt.toISOString(),
-        updatedAt: def.updatedAt.toISOString(),
-      };
-    })(),
   };
 }
 

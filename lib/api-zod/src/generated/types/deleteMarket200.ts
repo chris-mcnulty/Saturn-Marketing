@@ -6,8 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateMarketBody {
-  name: string;
-  description?: string;
-  isDefault?: boolean;
-}
+export type DeleteMarket200 = {
+  success: boolean;
+};

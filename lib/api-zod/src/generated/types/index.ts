@@ -34,6 +34,7 @@ export * from "./createGroundingDocBodyCategory";
 export * from "./createMarketBody";
 export * from "./createProductTagBody";
 export * from "./createSocialAccountBody";
+export * from "./deleteMarket200";
 export * from "./errorResponse";
 export * from "./generateCampaignPosts202";
 export * from "./generatedPost";

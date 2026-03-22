@@ -20,11 +20,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Pencil, Check, X } from "lucide-react";
+import { Loader2, Trash2, Pencil, Check, X, MapPin, Star } from "lucide-react";
+import { useMarket } from "@/lib/market-context";
 
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { activeMarket, markets } = useMarket();
   
   const { data: tenant } = useGetTenant();
   const { data: categories } = useListCategories();
@@ -110,6 +112,41 @@ export default function Settings() {
                 </Button>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border-border/50">
+          <CardHeader>
+            <CardTitle className="font-display">Active Market</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activeMarket ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground">{activeMarket.name}</p>
+                      {activeMarket.isDefault && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 text-[10px] font-semibold uppercase flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5" /> Default
+                        </span>
+                      )}
+                    </div>
+                    {activeMarket.description && (
+                      <p className="text-sm text-muted-foreground">{activeMarket.description}</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {markets.length} market{markets.length !== 1 ? "s" : ""} configured for this tenant
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No active market selected.</p>
+            )}
           </CardContent>
         </Card>
 

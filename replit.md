@@ -29,7 +29,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 ## Core Features
 
 - **Multi-tenant auth**: Domain-based tenant provisioning. First user for a domain becomes Domain Admin. Session-based with Orbit role system.
-- **Market Hierarchy**: Tenant → Market hierarchy. Each tenant auto-gets a default market on creation. All major entities (assets, brand assets, categories, campaigns, social accounts, product tags, generated posts/emails) have optional `marketId` FK. List endpoints accept `?market_id=` query filter. Auth responses include `markets[]` array. Full CRUD at `/markets`. Admin CRUD at `/admin/tenants` (POST/DELETE). Grounding docs support three-tier scoping: system (tenantId=null), tenant (tenantId set, marketId=null), market (both set); GET merges all applicable scopes when `market_id` is provided.
+- **Market Hierarchy**: Tenant → Market hierarchy. Each tenant auto-gets a default market on creation. One default market per tenant enforced server-side. All major entities (assets, brand assets, categories, campaigns, social accounts, product tags, generated posts/emails) have optional `marketId` FK. List endpoints accept `?market_id=` query filter. Auth responses include `markets[]` array. Full CRUD at `/markets` with admin middleware, validation, and default invariant protection. Admin CRUD at `/admin/tenants` (POST/DELETE). Grounding docs support three-tier scoping. Frontend: MarketContext provider with localStorage persistence (`saturn_active_market_id`), market picker dropdown in sidebar, Markets management page, Tenant Admin page for Global Admins.
 - **Roles**: Global Admin, Domain Admin, Standard User, Consultant (from Orbit)
 - **Service Plans**: trial (60-day), free, pro, enterprise — with feature flags (JSONB), usage limits, user limits
 - **Domain Blocklist**: Blocks personal email providers (gmail, yahoo, hotmail, etc.) from self-registration
@@ -43,7 +43,7 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Social Account Management**: Configure social media accounts with SocialPilot account IDs.
 - **AI Grounding Documents**: Upload files (PDF, DOCX, TXT, Markdown) or paste text for brand voice guidelines, messaging frameworks, marketing guidelines, and methodology docs. Files are extracted to text server-side using pdf-parse and mammoth. Tenant-scoped, active/inactive toggle. Active docs are automatically injected into AI prompts for content extraction and post variation generation.
 - **Promotional Email Generator**: AI-powered email generation for content assets. Select one or more assets, choose target platform (Outlook, HubSpot Marketing, HubSpot 1:1, Dynamics 365), set optional tone/CTA/recipient context. Generates platform-tailored email body with subject line suggestions and coaching tips. Copy-to-clipboard support. Asset selector includes category filter, date range (from/to) pickers, and Select All / Deselect All toggle. Generated emails can be saved to database (`generated_emails` table), listed, viewed, and deleted via the Saved Emails panel.
-- **Settings**: Manage organization profile, content categories, and team members.
+- **Settings**: Manage organization profile, content categories, team members, and active market details.
 
 ## Structure
 
@@ -89,7 +89,7 @@ Express 5 API server with session-based auth, multi-tenant data isolation, AI co
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
 - App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, express-session, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv, admin, grounding-docs
+- Routes: `src/routes/index.ts` mounts sub-routers for auth, categories, assets, brand-assets, campaigns, social-accounts, tenant, csv, admin, grounding-docs, markets
 - Auth routes: `src/routes/auth.ts` — register (domain-based with blocklist check), login (SSO-aware), me, logout, Entra SSO status
 - Admin routes: `src/routes/admin.ts` — service plans CRUD, domain blocklist, tenant management, user management, tenant invites, consultant access
 - Middleware: `src/middlewares/auth.ts` — `requireAuth`, `requireAdmin` (Domain Admin+), `requireGlobalAdmin`
@@ -102,7 +102,7 @@ Express 5 API server with session-based auth, multi-tenant data isolation, AI co
 
 React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 
-- Pages: login, register, dashboard, assets, brand-assets, campaigns, campaign-detail, social-accounts, grounding-docs, settings
+- Pages: login, register, dashboard, assets, brand-assets, campaigns, campaign-detail, social-accounts, grounding-docs, settings, markets, admin-tenants
 - Layout: sidebar navigation with mobile responsive drawer
 - Auth context: auto-redirects to login when unauthenticated
 - API client: uses generated React Query hooks from `@workspace/api-client-react` with `credentials: "include"` for session cookies
@@ -117,7 +117,7 @@ React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 Database layer using Drizzle ORM with PostgreSQL.
 
 Schema tables:
-- **Core**: tenants, users, categories, assets, brandAssets, brandAssetCategories, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts, groundingDocuments, productTags, assetProductTags, brandAssetProductTags
+- **Core**: tenants, users, categories, assets, brandAssets, brandAssetCategories, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts, groundingDocuments, productTags, assetProductTags, brandAssetProductTags, markets
 - **Orbit patterns**: servicePlans, emailVerificationTokens, tenantInvites, domainBlocklist, consultantAccess
 
 Tenants table: domain (unique), name, plan, status, trial dates, user/analysis/competitor limits, Entra SSO fields, branding colors

@@ -615,6 +615,126 @@ paths:
                 required:
                   - success
 
+  /markets:
+    get:
+      operationId: listMarkets
+      tags: [markets]
+      summary: List markets for the current tenant
+      responses:
+        "200":
+          description: List of markets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Market"
+    post:
+      operationId: createMarket
+      tags: [markets]
+      summary: Create a new market
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMarketBody"
+      responses:
+        "201":
+          description: Market created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /markets/{id}:
+    get:
+      operationId: getMarket
+      tags: [markets]
+      summary: Get a single market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateMarket
+      tags: [markets]
+      summary: Update a market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMarketBody"
+      responses:
+        "200":
+          description: Market updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Market"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMarket
+      tags: [markets]
+      summary: Archive a market
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Market archived
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+        "400":
+          description: Cannot delete default market
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /brand-assets:
     get:
       operationId: listBrandAssets
@@ -1469,111 +1589,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /markets:
-    get:
-      operationId: listMarkets
-      tags: [markets]
-      summary: List markets for the current tenant
-      responses:
-        "200":
-          description: List of markets
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Market"
-    post:
-      operationId: createMarket
-      tags: [markets]
-      summary: Create a new market
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateMarketBody"
-      responses:
-        "201":
-          description: Market created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-
-  /markets/{id}:
-    get:
-      operationId: getMarket
-      tags: [markets]
-      summary: Get a market by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Market details
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-        "404":
-          description: Market not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    patch:
-      operationId: updateMarket
-      tags: [markets]
-      summary: Update a market
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateMarketBody"
-      responses:
-        "200":
-          description: Market updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Market"
-        "404":
-          description: Market not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-    delete:
-      operationId: deleteMarket
-      tags: [markets]
-      summary: Delete a market
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Market deleted
-        "400":
-          description: Cannot delete default market
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /admin/tenants:
     get:
       operationId: adminListTenants
@@ -1747,10 +1762,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Market"
-        defaultMarket:
-          oneOf:
-            - $ref: "#/components/schemas/Market"
-            - type: "null"
       required:
         - user
         - tenant
@@ -1814,6 +1825,60 @@ components:
       type: object
       properties:
         name:
+          type: string
+
+    Market:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        isDefault:
+          type: boolean
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - name
+        - isDefault
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateMarketBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        isDefault:
+          type: boolean
+      required:
+        - name
+
+    UpdateMarketBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        isDefault:
+          type: boolean
+        status:
           type: string
 
     UpdateUserBody:
@@ -2730,56 +2795,6 @@ components:
         - assetTitles
         - assetIds
         - createdAt
-
-    Market:
-      type: object
-      properties:
-        id:
-          type: integer
-        tenantId:
-          type: integer
-        name:
-          type: string
-        description:
-          type: ["string", "null"]
-        isDefault:
-          type: boolean
-        status:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-      required:
-        - id
-        - tenantId
-        - name
-        - isDefault
-        - status
-        - createdAt
-        - updatedAt
-
-    CreateMarketBody:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-      required:
-        - name
-
-    UpdateMarketBody:
-      type: object
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        status:
-          type: string
 
     AdminCreateTenantBody:
       type: object

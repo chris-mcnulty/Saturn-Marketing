@@ -73,21 +73,6 @@ export const LoginResponse = zod.object({
       updatedAt: zod.date(),
     }),
   ),
-  defaultMarket: zod
-    .union([
-      zod.object({
-        id: zod.number(),
-        tenantId: zod.number(),
-        name: zod.string(),
-        description: zod.string().nullish(),
-        isDefault: zod.boolean(),
-        status: zod.string(),
-        createdAt: zod.date(),
-        updatedAt: zod.date(),
-      }),
-      zod.null(),
-    ])
-    .optional(),
 });
 
 /**
@@ -131,21 +116,6 @@ export const GetMeResponse = zod.object({
       updatedAt: zod.date(),
     }),
   ),
-  defaultMarket: zod
-    .union([
-      zod.object({
-        id: zod.number(),
-        tenantId: zod.number(),
-        name: zod.string(),
-        description: zod.string().nullish(),
-        isDefault: zod.boolean(),
-        status: zod.string(),
-        createdAt: zod.date(),
-        updatedAt: zod.date(),
-      }),
-      zod.null(),
-    ])
-    .optional(),
 });
 
 /**
@@ -525,6 +495,84 @@ export const SetProductTagAssetsBody = zod.object({
 });
 
 export const SetProductTagAssetsResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary List markets for the current tenant
+ */
+export const ListMarketsResponseItem = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  isDefault: zod.boolean(),
+  status: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListMarketsResponse = zod.array(ListMarketsResponseItem);
+
+/**
+ * @summary Create a new market
+ */
+export const CreateMarketBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+  isDefault: zod.boolean().optional(),
+});
+
+/**
+ * @summary Get a single market
+ */
+export const GetMarketParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetMarketResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  isDefault: zod.boolean(),
+  status: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Update a market
+ */
+export const UpdateMarketParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateMarketBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  isDefault: zod.boolean().optional(),
+  status: zod.string().optional(),
+});
+
+export const UpdateMarketResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  isDefault: zod.boolean(),
+  status: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Archive a market
+ */
+export const DeleteMarketParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteMarketResponse = zod.object({
   success: zod.boolean(),
 });
 
@@ -1362,78 +1410,6 @@ export const SaveGeneratedEmailBody = zod.object({
  * @summary Delete a saved email
  */
 export const DeleteSavedEmailParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-/**
- * @summary List markets for the current tenant
- */
-export const ListMarketsResponseItem = zod.object({
-  id: zod.number(),
-  tenantId: zod.number(),
-  name: zod.string(),
-  description: zod.string().nullish(),
-  isDefault: zod.boolean(),
-  status: zod.string(),
-  createdAt: zod.date(),
-  updatedAt: zod.date(),
-});
-export const ListMarketsResponse = zod.array(ListMarketsResponseItem);
-
-/**
- * @summary Create a new market
- */
-export const CreateMarketBody = zod.object({
-  name: zod.string(),
-  description: zod.string().optional(),
-});
-
-/**
- * @summary Get a market by ID
- */
-export const GetMarketParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const GetMarketResponse = zod.object({
-  id: zod.number(),
-  tenantId: zod.number(),
-  name: zod.string(),
-  description: zod.string().nullish(),
-  isDefault: zod.boolean(),
-  status: zod.string(),
-  createdAt: zod.date(),
-  updatedAt: zod.date(),
-});
-
-/**
- * @summary Update a market
- */
-export const UpdateMarketParams = zod.object({
-  id: zod.coerce.number(),
-});
-
-export const UpdateMarketBody = zod.object({
-  name: zod.string().optional(),
-  description: zod.string().optional(),
-  status: zod.string().optional(),
-});
-
-export const UpdateMarketResponse = zod.object({
-  id: zod.number(),
-  tenantId: zod.number(),
-  name: zod.string(),
-  description: zod.string().nullish(),
-  isDefault: zod.boolean(),
-  status: zod.string(),
-  createdAt: zod.date(),
-  updatedAt: zod.date(),
-});
-
-/**
- * @summary Delete a market
- */
-export const DeleteMarketParams = zod.object({
   id: zod.coerce.number(),
 });
 

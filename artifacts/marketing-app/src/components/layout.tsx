@@ -14,7 +14,9 @@ import {
   Moon,
   Monitor,
   BookOpen,
-  Mail
+  Mail,
+  MapPin,
+  Building2
 } from "lucide-react";
 import { SynozurLogo } from "@/components/synozur-logo";
 import { useAuth } from "@/lib/auth-context";
@@ -22,6 +24,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { MarketPicker } from "@/components/market-picker";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -31,7 +34,12 @@ const navItems = [
   { href: "/grounding-docs", label: "Grounding Docs", icon: BookOpen },
   { href: "/email-generator", label: "Email Generator", icon: Mail },
   { href: "/social-accounts", label: "Social Accounts", icon: Share2 },
+  { href: "/markets", label: "Markets", icon: MapPin },
   { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const adminNavItems = [
+  { href: "/admin/tenants", label: "Tenant Admin", icon: Building2 },
 ];
 
 function ThemeToggle() {
@@ -76,7 +84,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="font-display font-bold text-xl saturn-gradient-text">Saturn</span>
         </div>
 
-        <nav className="flex-1 px-3 space-y-1 mt-4">
+        <div className="px-3 mt-4 mb-2">
+          <MarketPicker />
+        </div>
+
+        <nav className="flex-1 px-3 space-y-1">
           {navItems.map((item) => {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
             return (
@@ -94,6 +106,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {user?.role === "Global Admin" && (
+            <>
+              <div className="pt-2 pb-1 px-3">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Admin</span>
+              </div>
+              {adminNavItems.map((item) => {
+                const isActive = location === item.href || location.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground sidebar-item-active-gradient"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <item.icon className={`w-5 h-5 ${isActive ? "text-sidebar-primary" : ""}`} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         <div className="p-4 mt-auto border-t border-sidebar-border">
@@ -153,7 +189,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <X className="w-5 h-5" />
                   </Button>
                 </div>
-                <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
+                <div className="px-4 mt-4 mb-2">
+                  <MarketPicker />
+                </div>
+                <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
                   {navItems.map((item) => {
                     const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
                     return (
@@ -164,6 +203,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         className={`flex items-center gap-3 px-3 py-3 rounded-xl text-base font-medium transition-all ${
                           isActive 
                             ? "bg-sidebar-accent text-sidebar-accent-foreground sidebar-item-active-gradient" 
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        }`}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                  {user?.role === "Global Admin" && adminNavItems.map((item) => {
+                    const isActive = location === item.href || location.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-xl text-base font-medium transition-all ${
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground sidebar-item-active-gradient"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         }`}
                       >

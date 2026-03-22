@@ -81,11 +81,23 @@ export interface AuthResponse {
   user: User;
   tenant: Tenant;
   markets: Market[];
-  defaultMarket?: Market | null;
 }
 
 export interface UpdateTenantBody {
   name?: string;
+}
+
+export interface CreateMarketBody {
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+}
+
+export interface UpdateMarketBody {
+  name?: string;
+  description?: string;
+  isDefault?: boolean;
+  status?: string;
 }
 
 export type UpdateUserBodyRole =
@@ -638,17 +650,6 @@ export interface SavedEmail {
   createdAt: string;
 }
 
-export interface CreateMarketBody {
-  name: string;
-  description?: string;
-}
-
-export interface UpdateMarketBody {
-  name?: string;
-  description?: string;
-  status?: string;
-}
-
 export interface AdminCreateTenantBody {
   name: string;
   domain: string;
@@ -693,6 +694,10 @@ export type SetProductTagAssetsBody = {
 };
 
 export type SetProductTagAssets200 = {
+  success: boolean;
+};
+
+export type DeleteMarket200 = {
   success: boolean;
 };
 

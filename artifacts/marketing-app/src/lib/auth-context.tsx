@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect } from "react";
-import { useGetMe, AuthResponse } from "@workspace/api-client-react";
+import { useGetMe, AuthResponse, Market } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 
 interface AuthContextType {
   user: AuthResponse["user"] | null;
   tenant: AuthResponse["tenant"] | null;
+  markets: Market[];
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -12,6 +13,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   tenant: null,
+  markets: [],
   isLoading: true,
   isAuthenticated: false,
 });
@@ -42,6 +44,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         user: data?.user || null,
         tenant: data?.tenant || null,
+        markets: data?.markets || [],
         isLoading,
         isAuthenticated: !!data,
       }}

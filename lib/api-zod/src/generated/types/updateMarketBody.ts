@@ -9,5 +9,6 @@
 export interface UpdateMarketBody {
   name?: string;
   description?: string;
+  isDefault?: boolean;
   status?: string;
 }

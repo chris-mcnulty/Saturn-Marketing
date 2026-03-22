@@ -18,3 +18,4 @@ export * from "./groundingDocuments";
 export * from "./generatedPosts";
 export * from "./generatedEmails";
 export * from "./productTags";
+export * from "./markets";

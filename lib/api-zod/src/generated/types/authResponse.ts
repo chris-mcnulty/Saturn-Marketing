@@ -13,5 +13,4 @@ export interface AuthResponse {
   user: User;
   tenant: Tenant;
   markets: Market[];
-  defaultMarket?: Market | null;
 }
