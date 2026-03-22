@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { AppLayout } from "@/components/layout";
 import { 
   useGetCampaign, 
@@ -17,6 +17,8 @@ import {
   useUpdateGeneratedPost,
   useDeleteGeneratedPost,
   useDeleteAllGeneratedPosts,
+  useListBrandAssets,
+  useListBrandAssetCategories,
   getGetCampaignQueryKey,
   getListCampaignsQueryKey,
   getListGeneratedPostsQueryKey,
@@ -28,7 +30,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Plus, Download, Wand2, Link as LinkIcon, Trash2, Edit, Pencil, Save, X } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Download, Wand2, Link as LinkIcon, Trash2, Edit, Pencil, Save, X, Search, Image as ImageIcon, RotateCcw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -66,6 +68,94 @@ export default function CampaignDetail() {
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editPostContent, setEditPostContent] = useState("");
   const [editPostTags, setEditPostTags] = useState("");
+
+  const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
+  const [overrideAssetId, setOverrideAssetId] = useState<number | null>(null);
+  const [overrideImageUrl, setOverrideImageUrl] = useState("");
+  const [overrideSummaryText, setOverrideSummaryText] = useState("");
+  const [originalImageUrl, setOriginalImageUrl] = useState("");
+  const [originalSummaryText, setOriginalSummaryText] = useState("");
+  const [brandAssetSearch, setBrandAssetSearch] = useState("");
+  const [brandAssetCategoryFilter, setBrandAssetCategoryFilter] = useState<string>("all");
+  const [showBrandPicker, setShowBrandPicker] = useState(false);
+
+  const { data: brandAssets } = useListBrandAssets();
+  const { data: brandCategories } = useListBrandAssetCategories();
+
+  const filteredBrandAssets = useMemo(() => {
+    if (!brandAssets) return [];
+    let filtered = brandAssets;
+    if (brandAssetCategoryFilter === "uncategorized") {
+      filtered = filtered.filter(a => !a.categoryId);
+    } else if (brandAssetCategoryFilter !== "all") {
+      filtered = filtered.filter(a => a.categoryId === Number(brandAssetCategoryFilter));
+    }
+    if (brandAssetSearch.trim()) {
+      const q = brandAssetSearch.toLowerCase();
+      filtered = filtered.filter(a =>
+        (a.title && a.title.toLowerCase().includes(q)) ||
+        (a.description && a.description.toLowerCase().includes(q)) ||
+        (a.tags && a.tags.toLowerCase().includes(q))
+      );
+    }
+    return filtered;
+  }, [brandAssets, brandAssetCategoryFilter, brandAssetSearch]);
+
+  const openOverrideDialog = (ca: { assetId: number; overrideImageUrl: string | null; overrideSummaryText: string | null; asset: { suggestedImageUrl: string | null; summaryText: string | null } }) => {
+    setOverrideAssetId(ca.assetId);
+    setOverrideImageUrl(ca.overrideImageUrl ?? ca.asset.suggestedImageUrl ?? "");
+    setOverrideSummaryText(ca.overrideSummaryText ?? ca.asset.summaryText ?? "");
+    setOriginalImageUrl(ca.asset.suggestedImageUrl || "");
+    setOriginalSummaryText(ca.asset.summaryText || "");
+    setBrandAssetSearch("");
+    setBrandAssetCategoryFilter("all");
+    setShowBrandPicker(false);
+    setIsOverrideDialogOpen(true);
+  };
+
+  const handleSaveOverride = () => {
+    if (overrideAssetId === null) return;
+    const hasImageOverride = overrideImageUrl !== originalImageUrl;
+    const hasSummaryOverride = overrideSummaryText !== originalSummaryText;
+    updateAssetMut.mutate({
+      campaignId: id,
+      assetId: overrideAssetId,
+      data: {
+        overrideImageUrl: hasImageOverride ? (overrideImageUrl.trim() || null) : null,
+        overrideSummaryText: hasSummaryOverride ? (overrideSummaryText.trim() || null) : null,
+      },
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
+        setIsOverrideDialogOpen(false);
+        toast({ title: "Asset override saved" });
+      },
+      onError: () => {
+        toast({ title: "Failed to save override", variant: "destructive" });
+      },
+    });
+  };
+
+  const handleClearOverride = () => {
+    if (overrideAssetId === null) return;
+    updateAssetMut.mutate({
+      campaignId: id,
+      assetId: overrideAssetId,
+      data: {
+        overrideImageUrl: null,
+        overrideSummaryText: null,
+      },
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) });
+        setIsOverrideDialogOpen(false);
+        toast({ title: "Override cleared — reverted to original" });
+      },
+      onError: () => {
+        toast({ title: "Failed to clear override", variant: "destructive" });
+      },
+    });
+  };
   const [isDeleteAllPostsOpen, setIsDeleteAllPostsOpen] = useState(false);
 
   const exportFormats = [
@@ -418,8 +508,7 @@ export default function CampaignDetail() {
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        {/* Simple placeholder for edit override - full implementation would open dialog */}
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary"><Edit className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => openOverrideDialog(ca)}><Edit className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => {
                           removeAssetMut.mutate({ campaignId: id, assetId: ca.assetId }, {
                             onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetCampaignQueryKey(id) })
@@ -878,6 +967,149 @@ export default function CampaignDetail() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <DialogPrimitive.Root open={isOverrideDialogOpen} onOpenChange={setIsOverrideDialogOpen}>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+            <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+              <DialogPrimitive.Title className="text-xl font-display font-bold">Edit Asset Override</DialogPrimitive.Title>
+              <p className="text-sm text-muted-foreground mt-1">Customize the image and summary for this campaign asset.</p>
+
+              <div className="space-y-5 mt-5">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Image Preview</label>
+                  <div className="w-full h-40 rounded-xl bg-secondary overflow-hidden flex items-center justify-center">
+                    {overrideImageUrl ? (
+                      <img src={overrideImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <ImageIcon className="w-8 h-8" />
+                        <span className="text-xs">No image set</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Override Image URL</label>
+                  <Input
+                    value={overrideImageUrl}
+                    onChange={(e) => setOverrideImageUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    onClick={() => setShowBrandPicker(!showBrandPicker)}
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    {showBrandPicker ? "Hide Brand Assets" : "Browse Brand Assets"}
+                  </Button>
+
+                  {showBrandPicker && (
+                    <div className="mt-3 border rounded-xl p-3 bg-secondary/20">
+                      <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search brand assets..."
+                            value={brandAssetSearch}
+                            onChange={(e) => setBrandAssetSearch(e.target.value)}
+                            className="pl-9 h-9 rounded-lg bg-background text-sm"
+                          />
+                        </div>
+                        {brandCategories && brandCategories.length > 0 && (
+                          <select
+                            value={brandAssetCategoryFilter}
+                            onChange={(e) => setBrandAssetCategoryFilter(e.target.value)}
+                            className="h-9 rounded-lg border bg-background px-2 text-sm"
+                          >
+                            <option value="all">All Categories</option>
+                            {brandCategories.map(cat => (
+                              <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                            ))}
+                            <option value="uncategorized">Uncategorized</option>
+                          </select>
+                        )}
+                      </div>
+
+                      {!brandAssets ? (
+                        <div className="flex items-center justify-center py-6">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        </div>
+                      ) : filteredBrandAssets.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">No brand assets found.</p>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                          {filteredBrandAssets.map(asset => (
+                            <button
+                              key={asset.id}
+                              type="button"
+                              onClick={() => {
+                                setOverrideImageUrl(asset.imageUrl);
+                                setShowBrandPicker(false);
+                              }}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:border-primary hover:shadow-md ${
+                                overrideImageUrl === asset.imageUrl ? "border-primary ring-2 ring-primary/30" : "border-transparent"
+                              }`}
+                            >
+                              <img src={asset.imageUrl} alt={asset.title || "Brand asset"} className="w-full h-full object-cover" />
+                              {asset.title && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1">
+                                  <span className="text-[10px] text-white font-medium truncate block">{asset.title}</span>
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Override Summary Text</label>
+                  <textarea
+                    value={overrideSummaryText}
+                    onChange={(e) => setOverrideSummaryText(e.target.value)}
+                    placeholder="Custom summary text..."
+                    rows={3}
+                    className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground rounded-xl"
+                  onClick={handleClearOverride}
+                  disabled={updateAssetMut.isPending}
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" /> Clear All Overrides
+                </Button>
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => setIsOverrideDialogOpen(false)} className="rounded-xl">Cancel</Button>
+                  <Button
+                    onClick={handleSaveOverride}
+                    disabled={updateAssetMut.isPending}
+                    className="rounded-xl bg-primary text-primary-foreground"
+                  >
+                    {updateAssetMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Override
+                  </Button>
+                </div>
+              </div>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
 
         <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <DialogContent className="sm:max-w-md">
