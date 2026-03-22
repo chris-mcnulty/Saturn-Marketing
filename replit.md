@@ -35,7 +35,8 @@ Multi-tenant marketing SaaS application (**Saturn** — formerly Synozur) for ge
 - **Tenant Invites**: Domain/Global Admins can invite users with token-based acceptance flow
 - **Consultant Access**: Global Admin can grant consultants read access to specific tenants
 - **Content Asset Library**: Add URLs, AI-powered content extraction (cheerio + OpenAI for summaries), category tagging, active/inactive toggle. Per-asset @mentions and hashtags that persist through all generated post variations.
-- **Brand Asset Library**: Manage brand images with titles, descriptions, and tags.
+- **Brand Asset Library**: Manage brand images with titles, descriptions, and tags. Category management UI with create/edit/delete. Edit/delete buttons always visible on cards.
+- **Product Tags**: Many-to-many product/service offering tags (e.g., "Vega", "M365 Readiness", "Company OS") that can be assigned to both content assets and brand assets. CRUD management + junction tables (`asset_product_tags`, `brand_asset_product_tags`).
 - **Campaign Management**: Create campaigns with scheduling (start date, duration, posts/day, posting times), assign assets and social accounts.
 - **Multi-Platform CSV Export**: Generate bulk posts with AI-powered variation. Supports SocialPilot, Hootsuite, Sprout Social, and Buffer formats. Max 500 posts per export. AI calls (hashtag generation + 3 text variations per asset) are pre-generated in parallel with bounded concurrency (5 concurrent asset batches) to avoid timeouts on large campaigns. Generated posts are persisted to the `generated_posts` table so they survive page refreshes and can be re-exported without regeneration.
 - **Social Account Management**: Configure social media accounts with SocialPilot account IDs.
@@ -115,7 +116,7 @@ React + Vite frontend with TailwindCSS, Wouter routing, TanStack React Query.
 Database layer using Drizzle ORM with PostgreSQL.
 
 Schema tables:
-- **Core**: tenants, users, categories, assets, brandAssets, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts, groundingDocuments
+- **Core**: tenants, users, categories, assets, brandAssets, brandAssetCategories, campaigns, campaignAssets, socialAccounts, campaignSocialAccounts, groundingDocuments, productTags, assetProductTags, brandAssetProductTags
 - **Orbit patterns**: servicePlans, emailVerificationTokens, tenantInvites, domainBlocklist, consultantAccess
 
 Tenants table: domain (unique), name, plan, status, trial dates, user/analysis/competitor limits, Entra SSO fields, branding colors
@@ -137,8 +138,9 @@ Generated React Query hooks and fetch client from the OpenAPI spec. Custom fetch
 
 Chromium/Edge browser extension (Manifest V3) for capturing web content and images while browsing.
 
-- **Content Asset Capture**: Click popup button to grab current page's title, URL, and meta description
+- **Content Asset Capture**: Click popup button to grab current page's title, URL, meta description, and OG image
 - **Image Asset Capture**: Right-click any image → "Capture Image for Saturn" to grab image URL, page title, alt text
+- **Also Add to Brand Assets**: When sending content assets, checkbox option to also add captured OG images to brand assets (with URL-based duplicate detection)
 - **Separate storage**: Content assets and image assets stored in separate lists via chrome.storage.local
 - **Edit/Delete**: Inline editing of all fields, per-item deletion
 - **CSV Export**: Content assets → `url,title,description`; Image assets → `image_url,title,description,tags` — matches Saturn's import format

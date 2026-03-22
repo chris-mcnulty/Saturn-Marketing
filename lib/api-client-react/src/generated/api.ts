@@ -34,6 +34,7 @@ import type {
   CreateCampaignBody,
   CreateCategoryBody,
   CreateGroundingDocBody,
+  CreateProductTagBody,
   CreateSocialAccountBody,
   ErrorResponse,
   GenerateCampaignPosts202,
@@ -49,11 +50,15 @@ import type {
   ImportResultSummary,
   ListAssetsParams,
   ListCampaignsParams,
+  ListProductTagAssets200,
   LoginBody,
   MessageResponse,
+  ProductTag,
   RegisterBody,
   SaveEmailBody,
   SavedEmail,
+  SetProductTagAssets200,
+  SetProductTagAssetsBody,
   SocialAccount,
   Tenant,
   UpdateAssetBody,
@@ -64,6 +69,7 @@ import type {
   UpdateCategoryBody,
   UpdateGeneratedPostBody,
   UpdateGroundingDocBody,
+  UpdateProductTagBody,
   UpdateSocialAccountBody,
   UpdateTenantBody,
   UpdateUserBody,
@@ -1903,6 +1909,513 @@ export const useDeleteBrandAssetCategory = <
   TContext
 > => {
   return useMutation(getDeleteBrandAssetCategoryMutationOptions(options));
+};
+
+/**
+ * @summary List product/service tags for the current tenant
+ */
+export const getListProductTagsUrl = () => {
+  return `/api/product-tags`;
+};
+
+export const listProductTags = async (
+  options?: RequestInit,
+): Promise<ProductTag[]> => {
+  return customFetch<ProductTag[]>(getListProductTagsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProductTagsQueryKey = () => {
+  return [`/api/product-tags`] as const;
+};
+
+export const getListProductTagsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProductTags>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProductTags>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListProductTagsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProductTags>>> = ({
+    signal,
+  }) => listProductTags({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProductTags>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProductTagsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProductTags>>
+>;
+export type ListProductTagsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List product/service tags for the current tenant
+ */
+
+export function useListProductTags<
+  TData = Awaited<ReturnType<typeof listProductTags>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProductTags>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProductTagsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new product tag
+ */
+export const getCreateProductTagUrl = () => {
+  return `/api/product-tags`;
+};
+
+export const createProductTag = async (
+  createProductTagBody: CreateProductTagBody,
+  options?: RequestInit,
+): Promise<ProductTag> => {
+  return customFetch<ProductTag>(getCreateProductTagUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createProductTagBody),
+  });
+};
+
+export const getCreateProductTagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProductTag>>,
+    TError,
+    { data: BodyType<CreateProductTagBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProductTag>>,
+  TError,
+  { data: BodyType<CreateProductTagBody> },
+  TContext
+> => {
+  const mutationKey = ["createProductTag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProductTag>>,
+    { data: BodyType<CreateProductTagBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProductTag(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProductTagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProductTag>>
+>;
+export type CreateProductTagMutationBody = BodyType<CreateProductTagBody>;
+export type CreateProductTagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new product tag
+ */
+export const useCreateProductTag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProductTag>>,
+    TError,
+    { data: BodyType<CreateProductTagBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProductTag>>,
+  TError,
+  { data: BodyType<CreateProductTagBody> },
+  TContext
+> => {
+  return useMutation(getCreateProductTagMutationOptions(options));
+};
+
+/**
+ * @summary Update a product tag
+ */
+export const getUpdateProductTagUrl = (id: number) => {
+  return `/api/product-tags/${id}`;
+};
+
+export const updateProductTag = async (
+  id: number,
+  updateProductTagBody: UpdateProductTagBody,
+  options?: RequestInit,
+): Promise<ProductTag> => {
+  return customFetch<ProductTag>(getUpdateProductTagUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProductTagBody),
+  });
+};
+
+export const getUpdateProductTagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProductTag>>,
+    TError,
+    { id: number; data: BodyType<UpdateProductTagBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProductTag>>,
+  TError,
+  { id: number; data: BodyType<UpdateProductTagBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProductTag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProductTag>>,
+    { id: number; data: BodyType<UpdateProductTagBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProductTag(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProductTagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProductTag>>
+>;
+export type UpdateProductTagMutationBody = BodyType<UpdateProductTagBody>;
+export type UpdateProductTagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a product tag
+ */
+export const useUpdateProductTag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProductTag>>,
+    TError,
+    { id: number; data: BodyType<UpdateProductTagBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProductTag>>,
+  TError,
+  { id: number; data: BodyType<UpdateProductTagBody> },
+  TContext
+> => {
+  return useMutation(getUpdateProductTagMutationOptions(options));
+};
+
+/**
+ * @summary Delete a product tag
+ */
+export const getDeleteProductTagUrl = (id: number) => {
+  return `/api/product-tags/${id}`;
+};
+
+export const deleteProductTag = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProductTagUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProductTagMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProductTag>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProductTag>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteProductTag"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProductTag>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteProductTag(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProductTagMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProductTag>>
+>;
+
+export type DeleteProductTagMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a product tag
+ */
+export const useDeleteProductTag = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProductTag>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProductTag>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteProductTagMutationOptions(options));
+};
+
+/**
+ * @summary List asset IDs assigned to a product tag
+ */
+export const getListProductTagAssetsUrl = (id: number) => {
+  return `/api/product-tags/${id}/assets`;
+};
+
+export const listProductTagAssets = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ListProductTagAssets200> => {
+  return customFetch<ListProductTagAssets200>(getListProductTagAssetsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProductTagAssetsQueryKey = (id: number) => {
+  return [`/api/product-tags/${id}/assets`] as const;
+};
+
+export const getListProductTagAssetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProductTagAssets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProductTagAssets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListProductTagAssetsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listProductTagAssets>>
+  > = ({ signal }) => listProductTagAssets(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProductTagAssets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProductTagAssetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProductTagAssets>>
+>;
+export type ListProductTagAssetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List asset IDs assigned to a product tag
+ */
+
+export function useListProductTagAssets<
+  TData = Awaited<ReturnType<typeof listProductTagAssets>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProductTagAssets>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProductTagAssetsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set assets assigned to a product tag
+ */
+export const getSetProductTagAssetsUrl = (id: number) => {
+  return `/api/product-tags/${id}/assets`;
+};
+
+export const setProductTagAssets = async (
+  id: number,
+  setProductTagAssetsBody: SetProductTagAssetsBody,
+  options?: RequestInit,
+): Promise<SetProductTagAssets200> => {
+  return customFetch<SetProductTagAssets200>(getSetProductTagAssetsUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setProductTagAssetsBody),
+  });
+};
+
+export const getSetProductTagAssetsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setProductTagAssets>>,
+    TError,
+    { id: number; data: BodyType<SetProductTagAssetsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setProductTagAssets>>,
+  TError,
+  { id: number; data: BodyType<SetProductTagAssetsBody> },
+  TContext
+> => {
+  const mutationKey = ["setProductTagAssets"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setProductTagAssets>>,
+    { id: number; data: BodyType<SetProductTagAssetsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setProductTagAssets(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetProductTagAssetsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setProductTagAssets>>
+>;
+export type SetProductTagAssetsMutationBody = BodyType<SetProductTagAssetsBody>;
+export type SetProductTagAssetsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set assets assigned to a product tag
+ */
+export const useSetProductTagAssets = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setProductTagAssets>>,
+    TError,
+    { id: number; data: BodyType<SetProductTagAssetsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setProductTagAssets>>,
+  TError,
+  { id: number; data: BodyType<SetProductTagAssetsBody> },
+  TContext
+> => {
+  return useMutation(getSetProductTagAssetsMutationOptions(options));
 };
 
 /**

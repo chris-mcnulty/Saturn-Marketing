@@ -78,8 +78,8 @@ router.post("/extension/login", async (req: Request, res: Response): Promise<voi
 });
 
 router.post("/extension/push-assets", requireExtensionAuth, async (req: Request, res: Response): Promise<void> => {
-  const { contentAssets, imageAssets } = req.body || {};
-  const results = { content: { created: 0, skipped: 0 }, images: { created: 0, skipped: 0 } };
+  const { contentAssets, imageAssets, addToBrandAssets } = req.body || {};
+  const results = { content: { created: 0, skipped: 0 }, images: { created: 0, skipped: 0 }, brandAssets: { created: 0, skipped: 0 } };
 
   if (contentAssets && Array.isArray(contentAssets)) {
     const existingAssets = await db.select({ url: assetsTable.url })
@@ -92,29 +92,47 @@ router.post("/extension/push-assets", requireExtensionAuth, async (req: Request,
 
       if (existingUrls.has(item.url)) {
         results.content.skipped++;
-        continue;
+      } else {
+        let categoryId: number | null = null;
+        if (item.category) {
+          const [cat] = await db.select().from(categoriesTable)
+            .where(and(eq(categoriesTable.tenantId, req.tenantId!), eq(categoriesTable.name, item.category)));
+          if (cat) {
+            categoryId = cat.id;
+          }
+        }
+
+        await db.insert(assetsTable).values({
+          tenantId: req.tenantId!,
+          url: item.url,
+          title: item.title || null,
+          description: item.description || null,
+          categoryId,
+          isActive: true,
+        });
+
+        existingUrls.add(item.url);
+        results.content.created++;
       }
 
-      let categoryId: number | null = null;
-      if (item.category) {
-        const [cat] = await db.select().from(categoriesTable)
-          .where(and(eq(categoriesTable.tenantId, req.tenantId!), eq(categoriesTable.name, item.category)));
-        if (cat) {
-          categoryId = cat.id;
+      if (addToBrandAssets && item.ogImage) {
+        const existingBrand = await db.select({ id: brandAssetsTable.id })
+          .from(brandAssetsTable)
+          .where(and(eq(brandAssetsTable.tenantId, req.tenantId!), eq(brandAssetsTable.imageUrl, item.ogImage)));
+
+        if (existingBrand.length === 0) {
+          await db.insert(brandAssetsTable).values({
+            tenantId: req.tenantId!,
+            imageUrl: item.ogImage,
+            title: item.title || null,
+            description: item.description || null,
+            tags: null,
+          });
+          results.brandAssets.created++;
+        } else {
+          results.brandAssets.skipped++;
         }
       }
-
-      await db.insert(assetsTable).values({
-        tenantId: req.tenantId!,
-        url: item.url,
-        title: item.title || null,
-        description: item.description || null,
-        categoryId,
-        active: true,
-      });
-
-      existingUrls.add(item.url);
-      results.content.created++;
     }
   }
 

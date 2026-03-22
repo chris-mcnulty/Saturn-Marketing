@@ -69,14 +69,17 @@ async function loadConnectionStatus() {
 function updateSendButtons(connected) {
   const sendContent = document.getElementById("send-content");
   const sendImages = document.getElementById("send-images");
+  const brandToggle = document.getElementById("brand-assets-toggle");
   sendContent.disabled = !connected;
   sendImages.disabled = !connected;
   if (!connected) {
     sendContent.title = "Connect to Saturn in Settings first";
     sendImages.title = "Connect to Saturn in Settings first";
+    if (brandToggle) brandToggle.style.display = "none";
   } else {
     sendContent.title = "";
     sendImages.title = "";
+    if (brandToggle) brandToggle.style.display = "flex";
   }
 }
 
@@ -180,6 +183,10 @@ async function sendToSaturn(type) {
     const body = {};
     if (type === "content") {
       body.contentAssets = items;
+      const addToBrand = document.getElementById("add-to-brand-assets");
+      if (addToBrand && addToBrand.checked) {
+        body.addToBrandAssets = true;
+      }
     } else {
       body.imageAssets = items;
     }
@@ -242,6 +249,7 @@ async function captureContent() {
     url: pageData.url || tab.url || "",
     title: pageData.title || tab.title || "",
     description: pageData.description || "",
+    ogImage: pageData.ogImage || "",
     capturedAt: new Date().toISOString(),
   };
 

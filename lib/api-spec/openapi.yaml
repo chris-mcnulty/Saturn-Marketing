@@ -34,6 +34,8 @@ tags:
     description: AI grounding document operations
   - name: emailGenerator
     description: Promotional email generation operations
+  - name: productTags
+    description: Product/service offering tag operations
 
 paths:
   /healthz:
@@ -447,6 +449,144 @@ paths:
       responses:
         "204":
           description: Brand asset category deleted
+
+  /product-tags:
+    get:
+      operationId: listProductTags
+      tags: [productTags]
+      summary: List product/service tags for the current tenant
+      responses:
+        "200":
+          description: List of product tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductTag"
+    post:
+      operationId: createProductTag
+      tags: [productTags]
+      summary: Create a new product tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductTagBody"
+      responses:
+        "201":
+          description: Product tag created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductTag"
+
+  /product-tags/{id}:
+    patch:
+      operationId: updateProductTag
+      tags: [productTags]
+      summary: Update a product tag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductTagBody"
+      responses:
+        "200":
+          description: Product tag updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductTag"
+    delete:
+      operationId: deleteProductTag
+      tags: [productTags]
+      summary: Delete a product tag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Product tag deleted
+
+  /product-tags/{id}/assets:
+    get:
+      operationId: listProductTagAssets
+      tags: [productTags]
+      summary: List asset IDs assigned to a product tag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset IDs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assetIds:
+                    type: array
+                    items:
+                      type: integer
+                  brandAssetIds:
+                    type: array
+                    items:
+                      type: integer
+                required:
+                  - assetIds
+                  - brandAssetIds
+    put:
+      operationId: setProductTagAssets
+      tags: [productTags]
+      summary: Set assets assigned to a product tag
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assetIds:
+                  type: array
+                  items:
+                    type: integer
+                brandAssetIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "200":
+          description: Assignments updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
 
   /brand-assets:
     get:
@@ -2117,6 +2257,45 @@ components:
         - skipped
         - failed
         - errors
+
+    ProductTag:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenantId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - tenantId
+        - name
+        - createdAt
+
+    CreateProductTagBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+
+    UpdateProductTagBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
 
     GenerateEmailBody:
       type: object

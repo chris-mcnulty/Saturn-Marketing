@@ -13,6 +13,7 @@ import adminRouter from "./admin";
 import groundingDocsRouter from "./groundingDocs";
 import emailGeneratorRouter from "./emailGenerator";
 import extensionApiRouter from "./extensionApi";
+import productTagsRouter from "./productTags";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(csvRouter);
 router.use(adminRouter);
 router.use(groundingDocsRouter);
 router.use(emailGeneratorRouter);
+router.use(productTagsRouter);
 
 export default router;

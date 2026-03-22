@@ -520,6 +520,24 @@ export interface ImportResultSummary {
   errors: string[];
 }
 
+export interface ProductTag {
+  id: number;
+  tenantId: number;
+  name: string;
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface CreateProductTagBody {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateProductTagBody {
+  name?: string;
+  description?: string;
+}
+
 export type GenerateEmailBodyPlatform =
   (typeof GenerateEmailBodyPlatform)[keyof typeof GenerateEmailBodyPlatform];
 
@@ -587,6 +605,20 @@ export type ListAssetsParams = {
   categoryId?: number;
   isActive?: boolean;
   search?: string;
+};
+
+export type ListProductTagAssets200 = {
+  assetIds: number[];
+  brandAssetIds: number[];
+};
+
+export type SetProductTagAssetsBody = {
+  assetIds?: number[];
+  brandAssetIds?: number[];
+};
+
+export type SetProductTagAssets200 = {
+  success: boolean;
 };
 
 export type ListCampaignsParams = {

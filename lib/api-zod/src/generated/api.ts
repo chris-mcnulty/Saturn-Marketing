@@ -383,6 +383,81 @@ export const DeleteBrandAssetCategoryParams = zod.object({
 });
 
 /**
+ * @summary List product/service tags for the current tenant
+ */
+export const ListProductTagsResponseItem = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+export const ListProductTagsResponse = zod.array(ListProductTagsResponseItem);
+
+/**
+ * @summary Create a new product tag
+ */
+export const CreateProductTagBody = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Update a product tag
+ */
+export const UpdateProductTagParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProductTagBody = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+});
+
+export const UpdateProductTagResponse = zod.object({
+  id: zod.number(),
+  tenantId: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Delete a product tag
+ */
+export const DeleteProductTagParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List asset IDs assigned to a product tag
+ */
+export const ListProductTagAssetsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListProductTagAssetsResponse = zod.object({
+  assetIds: zod.array(zod.number()),
+  brandAssetIds: zod.array(zod.number()),
+});
+
+/**
+ * @summary Set assets assigned to a product tag
+ */
+export const SetProductTagAssetsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetProductTagAssetsBody = zod.object({
+  assetIds: zod.array(zod.number()).optional(),
+  brandAssetIds: zod.array(zod.number()).optional(),
+});
+
+export const SetProductTagAssetsResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
  * @summary List brand-approved visual assets
  */
 export const ListBrandAssetsResponseItem = zod.object({

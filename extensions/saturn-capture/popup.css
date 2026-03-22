@@ -538,6 +538,28 @@ body {
   color: #fca5a5;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #a1a1aa;
+  cursor: pointer;
+  width: 100%;
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: #810FFB;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.checkbox-row span {
+  flex: 1;
+}
+
 .spinner {
   display: inline-block;
   width: 14px;
