@@ -7,6 +7,7 @@
  */
 
 export interface GeneratedPost {
+  id: number;
   postContent: string;
   /** @nullable */
   imageUrls?: string | null;

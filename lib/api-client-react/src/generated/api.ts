@@ -62,6 +62,7 @@ import type {
   UpdateCampaignAssetBody,
   UpdateCampaignBody,
   UpdateCategoryBody,
+  UpdateGeneratedPostBody,
   UpdateGroundingDocBody,
   UpdateSocialAccountBody,
   UpdateTenantBody,
@@ -3468,6 +3469,263 @@ export function useListGeneratedPosts<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Delete all generated posts for a campaign
+ */
+export const getDeleteAllGeneratedPostsUrl = (id: number) => {
+  return `/api/campaigns/${id}/generated-posts`;
+};
+
+export const deleteAllGeneratedPosts = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAllGeneratedPostsUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAllGeneratedPostsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAllGeneratedPosts>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAllGeneratedPosts>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAllGeneratedPosts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAllGeneratedPosts>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAllGeneratedPosts(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAllGeneratedPostsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAllGeneratedPosts>>
+>;
+
+export type DeleteAllGeneratedPostsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete all generated posts for a campaign
+ */
+export const useDeleteAllGeneratedPosts = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAllGeneratedPosts>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAllGeneratedPosts>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAllGeneratedPostsMutationOptions(options));
+};
+
+/**
+ * @summary Update a generated post
+ */
+export const getUpdateGeneratedPostUrl = (id: number, postId: number) => {
+  return `/api/campaigns/${id}/generated-posts/${postId}`;
+};
+
+export const updateGeneratedPost = async (
+  id: number,
+  postId: number,
+  updateGeneratedPostBody: UpdateGeneratedPostBody,
+  options?: RequestInit,
+): Promise<GeneratedPost> => {
+  return customFetch<GeneratedPost>(getUpdateGeneratedPostUrl(id, postId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateGeneratedPostBody),
+  });
+};
+
+export const getUpdateGeneratedPostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGeneratedPost>>,
+    TError,
+    { id: number; postId: number; data: BodyType<UpdateGeneratedPostBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateGeneratedPost>>,
+  TError,
+  { id: number; postId: number; data: BodyType<UpdateGeneratedPostBody> },
+  TContext
+> => {
+  const mutationKey = ["updateGeneratedPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateGeneratedPost>>,
+    { id: number; postId: number; data: BodyType<UpdateGeneratedPostBody> }
+  > = (props) => {
+    const { id, postId, data } = props ?? {};
+
+    return updateGeneratedPost(id, postId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateGeneratedPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateGeneratedPost>>
+>;
+export type UpdateGeneratedPostMutationBody = BodyType<UpdateGeneratedPostBody>;
+export type UpdateGeneratedPostMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a generated post
+ */
+export const useUpdateGeneratedPost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGeneratedPost>>,
+    TError,
+    { id: number; postId: number; data: BodyType<UpdateGeneratedPostBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateGeneratedPost>>,
+  TError,
+  { id: number; postId: number; data: BodyType<UpdateGeneratedPostBody> },
+  TContext
+> => {
+  return useMutation(getUpdateGeneratedPostMutationOptions(options));
+};
+
+/**
+ * @summary Delete a single generated post
+ */
+export const getDeleteGeneratedPostUrl = (id: number, postId: number) => {
+  return `/api/campaigns/${id}/generated-posts/${postId}`;
+};
+
+export const deleteGeneratedPost = async (
+  id: number,
+  postId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteGeneratedPostUrl(id, postId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteGeneratedPostMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGeneratedPost>>,
+    TError,
+    { id: number; postId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteGeneratedPost>>,
+  TError,
+  { id: number; postId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteGeneratedPost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteGeneratedPost>>,
+    { id: number; postId: number }
+  > = (props) => {
+    const { id, postId } = props ?? {};
+
+    return deleteGeneratedPost(id, postId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteGeneratedPostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteGeneratedPost>>
+>;
+
+export type DeleteGeneratedPostMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a single generated post
+ */
+export const useDeleteGeneratedPost = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGeneratedPost>>,
+    TError,
+    { id: number; postId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteGeneratedPost>>,
+  TError,
+  { id: number; postId: number },
+  TContext
+> => {
+  return useMutation(getDeleteGeneratedPostMutationOptions(options));
+};
 
 /**
  * @summary Generate posts for a campaign (async)

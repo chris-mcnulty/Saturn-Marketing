@@ -70,7 +70,8 @@ async function generateHashtags(
       "- Return ONLY the hashtags, one per line, each starting with #",
       "- Do NOT duplicate any of the existing campaign hashtags listed below",
       "- Keep hashtags concise and relevant",
-      "- Use camelCase for multi-word hashtags (e.g., #ContentMarketing)",
+      "- Use CamelCase for multi-word hashtags (e.g., #ContentMarketing)",
+      "- Hashtags must NEVER contain spaces — they are single continuous words (e.g., #PolarisPulse NOT #Polaris Pulse)",
       existingHashtags.length > 0
         ? `\nExisting campaign hashtags to AVOID duplicating: ${existingHashtags.join(" ")}`
         : "",
@@ -100,6 +101,8 @@ async function generateHashtags(
       .split("\n")
       .map((line: string) => line.trim())
       .filter((line: string) => line.startsWith("#"))
+      .map((line: string) => line.replace(/\s+/g, ""))
+      .filter((line: string) => line.length > 1)
       .filter((line: string) => !existingLower.has(line.toLowerCase().replace(/#/g, "")))
       .slice(0, 5);
     return hashtags;
@@ -113,6 +116,11 @@ async function generateVariation(originalText: string, groundingContext: string,
   try {
     const systemPromptParts = [
       "You are a social media marketing expert. Rewrite the following social media post with different wording while keeping the same core message and similar length (3-5 sentences, roughly 150-250 words). Make it sound fresh and engaging — try a different hook, angle, or tone. Use line breaks between thoughts for readability. Return only the rewritten post text, nothing else.",
+      "CRITICAL RULES:",
+      "- Do NOT include any URLs, links, or placeholders like [URL], [LINK], or bare domain names (e.g. synozur.com). The URL will be appended automatically after your text.",
+      "- Do NOT include any hashtags. Hashtags are handled separately.",
+      "- Do NOT include any placeholder text in brackets like [anything].",
+      "- Focus ONLY on the message body text.",
     ];
     if (hasTwitter) {
       systemPromptParts.push("IMPORTANT: This post will be published on Twitter/X. The ENTIRE post including hashtags and URL MUST be 280 characters or fewer. Keep the message concise.");
@@ -133,7 +141,21 @@ async function generateVariation(originalText: string, groundingContext: string,
       ],
     });
     const block = message.content[0];
-    return (block.type === "text" ? block.text : null) || originalText;
+    let result = (block.type === "text" ? block.text : null) || originalText;
+    result = result
+      .replace(/\[URL\]/gi, "")
+      .replace(/\[LINK\]/gi, "")
+      .replace(/\[link\]/gi, "")
+      .replace(/^\s*https?:\/\/\S+\s*$/gm, "")
+      .replace(/^\s*\w+\.\w{2,}\s*$/gm, (match) => {
+        const trimmed = match.trim();
+        if (/^[a-zA-Z0-9-]+\.(com|org|net|io|co|ai|dev|app)$/i.test(trimmed)) return "";
+        return match;
+      })
+      .replace(/#\S+/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return result;
   } catch {
     return originalText;
   }
@@ -285,9 +307,9 @@ async function generatePosts(campaignId: number, tenantId: number): Promise<Post
 
       const assetHashtags = selectedAsset.hashtags
         ? selectedAsset.hashtags.split(",").map((h: string) => {
-            const tag = h.trim();
+            const tag = h.trim().replace(/\s+/g, "");
             return tag.startsWith("#") ? tag : `#${tag}`;
-          }).filter((h: string) => h !== "#")
+          }).filter((h: string) => h !== "#" && h.length > 1)
         : [];
 
       if (campaignHashtags.length > 0 || assetHashtags.length > 0) {
@@ -501,6 +523,7 @@ router.get("/campaigns/:id/generated-posts", requireAuth, async (req, res): Prom
     .orderBy(generatedPostsTable.id);
 
   const posts = rows.map(r => ({
+    id: r.id,
     postContent: r.postContent,
     imageUrls: r.imageUrls,
     dateTime: r.dateTime,
@@ -512,6 +535,95 @@ router.get("/campaigns/:id/generated-posts", requireAuth, async (req, res): Prom
   }));
 
   res.json(posts);
+});
+
+router.put("/campaigns/:id/generated-posts/:postId", requireAuth, async (req, res): Promise<void> => {
+  const campaignId = parseInt(req.params.id);
+  const postId = parseInt(req.params.postId);
+  if (isNaN(campaignId) || isNaN(postId)) {
+    res.status(400).json({ error: "Invalid campaign or post ID" });
+    return;
+  }
+
+  const { postContent, dateTime, tags, firstComment } = req.body;
+
+  const existing = await db.select().from(generatedPostsTable)
+    .where(and(
+      eq(generatedPostsTable.id, postId),
+      eq(generatedPostsTable.campaignId, campaignId),
+      eq(generatedPostsTable.tenantId, req.tenantId!),
+    ));
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "Post not found" });
+    return;
+  }
+
+  const updates: Record<string, any> = {};
+  if (postContent !== undefined) updates.postContent = postContent;
+  if (dateTime !== undefined) updates.dateTime = dateTime;
+  if (tags !== undefined) updates.tags = tags;
+  if (firstComment !== undefined) updates.firstComment = firstComment;
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No fields to update" });
+    return;
+  }
+
+  await db.update(generatedPostsTable).set(updates).where(eq(generatedPostsTable.id, postId));
+
+  const updated = await db.select().from(generatedPostsTable).where(eq(generatedPostsTable.id, postId));
+  const r = updated[0];
+  res.json({
+    id: r.id,
+    postContent: r.postContent,
+    imageUrls: r.imageUrls,
+    dateTime: r.dateTime,
+    accountId: r.accountId,
+    firstComment: r.firstComment,
+    tags: r.tags,
+    assetId: r.assetId,
+    assetTitle: r.assetTitle,
+  });
+});
+
+router.delete("/campaigns/:id/generated-posts/:postId", requireAuth, async (req, res): Promise<void> => {
+  const campaignId = parseInt(req.params.id);
+  const postId = parseInt(req.params.postId);
+  if (isNaN(campaignId) || isNaN(postId)) {
+    res.status(400).json({ error: "Invalid campaign or post ID" });
+    return;
+  }
+
+  const existing = await db.select().from(generatedPostsTable)
+    .where(and(
+      eq(generatedPostsTable.id, postId),
+      eq(generatedPostsTable.campaignId, campaignId),
+      eq(generatedPostsTable.tenantId, req.tenantId!),
+    ));
+
+  if (existing.length === 0) {
+    res.status(404).json({ error: "Post not found" });
+    return;
+  }
+
+  await db.delete(generatedPostsTable).where(eq(generatedPostsTable.id, postId));
+  res.status(204).end();
+});
+
+router.delete("/campaigns/:id/generated-posts", requireAuth, async (req, res): Promise<void> => {
+  const campaignId = parseInt(req.params.id);
+  if (isNaN(campaignId)) {
+    res.status(400).json({ error: "Invalid campaign ID" });
+    return;
+  }
+
+  await db.delete(generatedPostsTable).where(and(
+    eq(generatedPostsTable.campaignId, campaignId),
+    eq(generatedPostsTable.tenantId, req.tenantId!),
+  ));
+
+  res.status(204).end();
 });
 
 router.post("/campaigns/:id/generate-posts", requireAuth, async (req, res): Promise<void> => {

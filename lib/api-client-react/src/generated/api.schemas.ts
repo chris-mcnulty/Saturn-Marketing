@@ -453,6 +453,7 @@ export interface UpdateGroundingDocBody {
 }
 
 export interface GeneratedPost {
+  id: number;
   postContent: string;
   /** @nullable */
   imageUrls?: string | null;
@@ -602,6 +603,15 @@ export const ListCampaignsStatus = {
   paused: "paused",
   completed: "completed",
 } as const;
+
+export type UpdateGeneratedPostBody = {
+  postContent?: string;
+  dateTime?: string;
+  /** @nullable */
+  tags?: string | null;
+  /** @nullable */
+  firstComment?: string | null;
+};
 
 export type GenerateCampaignPosts202 = {
   jobId: string;

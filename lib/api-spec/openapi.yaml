@@ -799,6 +799,76 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/GeneratedPost"
+    delete:
+      operationId: deleteAllGeneratedPosts
+      tags: [csv]
+      summary: Delete all generated posts for a campaign
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: All posts deleted
+
+  /campaigns/{id}/generated-posts/{postId}:
+    put:
+      operationId: updateGeneratedPost
+      tags: [csv]
+      summary: Update a generated post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                postContent:
+                  type: string
+                dateTime:
+                  type: string
+                tags:
+                  type: ["string", "null"]
+                firstComment:
+                  type: ["string", "null"]
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedPost"
+    delete:
+      operationId: deleteGeneratedPost
+      tags: [csv]
+      summary: Delete a single generated post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Post deleted
 
   /campaigns/{id}/generate-posts:
     post:
@@ -1920,6 +1990,8 @@ components:
     GeneratedPost:
       type: object
       properties:
+        id:
+          type: integer
         postContent:
           type: string
         imageUrls:
@@ -1937,6 +2009,7 @@ components:
         assetTitle:
           type: ["string", "null"]
       required:
+        - id
         - postContent
         - dateTime
         - accountId

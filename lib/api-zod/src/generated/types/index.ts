@@ -64,6 +64,7 @@ export * from "./updateCampaignAssetBody";
 export * from "./updateCampaignBody";
 export * from "./updateCampaignBodyStatus";
 export * from "./updateCategoryBody";
+export * from "./updateGeneratedPostBody";
 export * from "./updateGroundingDocBody";
 export * from "./updateGroundingDocBodyCategory";
 export * from "./updateSocialAccountBody";

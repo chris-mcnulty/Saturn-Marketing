@@ -779,6 +779,7 @@ export const ListGeneratedPostsParams = zod.object({
 });
 
 export const ListGeneratedPostsResponseItem = zod.object({
+  id: zod.number(),
   postContent: zod.string(),
   imageUrls: zod.string().nullish(),
   dateTime: zod.string(),
@@ -791,6 +792,48 @@ export const ListGeneratedPostsResponseItem = zod.object({
 export const ListGeneratedPostsResponse = zod.array(
   ListGeneratedPostsResponseItem,
 );
+
+/**
+ * @summary Delete all generated posts for a campaign
+ */
+export const DeleteAllGeneratedPostsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Update a generated post
+ */
+export const UpdateGeneratedPostParams = zod.object({
+  id: zod.coerce.number(),
+  postId: zod.coerce.number(),
+});
+
+export const UpdateGeneratedPostBody = zod.object({
+  postContent: zod.string().optional(),
+  dateTime: zod.string().optional(),
+  tags: zod.string().nullish(),
+  firstComment: zod.string().nullish(),
+});
+
+export const UpdateGeneratedPostResponse = zod.object({
+  id: zod.number(),
+  postContent: zod.string(),
+  imageUrls: zod.string().nullish(),
+  dateTime: zod.string(),
+  accountId: zod.string(),
+  firstComment: zod.string().nullish(),
+  tags: zod.string().nullish(),
+  assetId: zod.number(),
+  assetTitle: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a single generated post
+ */
+export const DeleteGeneratedPostParams = zod.object({
+  id: zod.coerce.number(),
+  postId: zod.coerce.number(),
+});
 
 /**
  * @summary Generate posts for a campaign (async)
@@ -815,6 +858,7 @@ export const GetGeneratePostsStatusResponse = zod.object({
   posts: zod
     .array(
       zod.object({
+        id: zod.number(),
         postContent: zod.string(),
         imageUrls: zod.string().nullish(),
         dateTime: zod.string(),

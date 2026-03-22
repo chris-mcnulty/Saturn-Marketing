@@ -14,8 +14,12 @@ import {
   useRemoveCampaignSocialAccount,
   useGenerateCampaignPosts,
   useListGeneratedPosts,
+  useUpdateGeneratedPost,
+  useDeleteGeneratedPost,
+  useDeleteAllGeneratedPosts,
   getGetCampaignQueryKey,
   getListCampaignsQueryKey,
+  getListGeneratedPostsQueryKey,
   getGeneratePostsStatus,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -55,6 +59,14 @@ export default function CampaignDetail() {
   const addAccountMut = useAddCampaignSocialAccount();
   const removeAccountMut = useRemoveCampaignSocialAccount();
   const generatePostsMut = useGenerateCampaignPosts();
+  const updatePostMut = useUpdateGeneratedPost();
+  const deletePostMut = useDeleteGeneratedPost();
+  const deleteAllPostsMut = useDeleteAllGeneratedPosts();
+
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [editPostContent, setEditPostContent] = useState("");
+  const [editPostTags, setEditPostTags] = useState("");
+  const [isDeleteAllPostsOpen, setIsDeleteAllPostsOpen] = useState(false);
 
   const exportFormats = [
     { value: "socialpilot", label: "SocialPilot" },
@@ -90,7 +102,7 @@ export default function CampaignDetail() {
   });
 
   useEffect(() => {
-    if (savedPosts && savedPosts.length > 0 && generatedPosts === null) {
+    if (savedPosts && savedPosts.length > 0) {
       setGeneratedPosts(savedPosts);
     }
   }, [savedPosts]);
@@ -228,7 +240,8 @@ export default function CampaignDetail() {
               if (pollingRef.current) clearInterval(pollingRef.current);
               pollingRef.current = null;
               setIsGenerating(false);
-              setGeneratedPosts(status.posts || []);
+              queryClient.invalidateQueries({ queryKey: getListGeneratedPostsQueryKey(id) });
+              setGeneratedPosts(null);
               setActiveTab("previews");
               toast({ title: "Posts generated successfully" });
             } else if (status.status === "error") {
@@ -457,20 +470,26 @@ export default function CampaignDetail() {
 
           {activeTab === 'previews' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Post Previews</h3>
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h3 className="text-lg font-semibold">Post Previews <span className="text-sm font-normal text-muted-foreground">({posts.length})</span></h3>
                 {posts.length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" className="rounded-xl text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setIsDeleteAllPostsOpen(true)}>
+                      <Trash2 className="w-4 h-4 mr-1" /> Delete All
+                    </Button>
+                    <Button variant="outline" size="sm" className="rounded-xl" onClick={handleGenerate} disabled={isGenerating}>
+                      <Wand2 className="w-4 h-4 mr-1" /> Regenerate
+                    </Button>
                     <select
                       value={exportFormat}
                       onChange={(e) => setExportFormat(e.target.value)}
-                      className="h-10 px-3 rounded-xl border border-input bg-background text-sm font-medium"
+                      className="h-9 px-3 rounded-xl border border-input bg-background text-sm font-medium"
                     >
                       {exportFormats.map(f => (
                         <option key={f.value} value={f.value}>{f.label}</option>
                       ))}
                     </select>
-                    <Button onClick={handleExport} disabled={isExporting} className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
+                    <Button onClick={handleExport} disabled={isExporting} size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white">
                       {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />} Export CSV
                     </Button>
                   </div>
@@ -495,34 +514,127 @@ export default function CampaignDetail() {
               ) : posts.length > 0 ? (
                 <div className="space-y-4">
                   {posts.map((post, i) => (
-                    <Card key={i} className="p-4 rounded-2xl border-border/50">
-                      <div className="flex flex-col md:flex-row gap-4">
-                        {post.imageUrls && (
-                          <div className="w-full md:w-32 aspect-video md:aspect-square bg-secondary rounded-xl overflow-hidden shrink-0">
-                            <img src={post.imageUrls.split(';')[0]} className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start mb-2 text-xs text-muted-foreground font-medium">
+                    <Card key={post.id ?? i} className="p-4 rounded-2xl border-border/50">
+                      {editingPostId === post.id ? (
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start text-xs text-muted-foreground font-medium">
                             <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">{post.dateTime}</span>
                             <span>Acct: {post.accountId}</span>
                           </div>
-                          <p className="text-sm whitespace-pre-wrap">{post.postContent}</p>
-                          {post.tags && (
-                            <div className="flex flex-wrap gap-1.5 mt-3">
-                              {post.tags.split(';').map((t: string, idx: number) => (
-                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                  #{t.trim()}
-                                </span>
-                              ))}
+                          <textarea
+                            className="w-full min-h-[120px] p-3 rounded-xl border border-input bg-background text-sm resize-y"
+                            value={editPostContent}
+                            onChange={(e) => setEditPostContent(e.target.value)}
+                          />
+                          <Input
+                            placeholder="Tags (semicolon-separated)"
+                            value={editPostTags}
+                            onChange={(e) => setEditPostTags(e.target.value)}
+                            className="rounded-xl"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setEditingPostId(null)}>
+                              <X className="w-4 h-4 mr-1" /> Cancel
+                            </Button>
+                            <Button size="sm" className="rounded-xl" disabled={updatePostMut.isPending} onClick={() => {
+                              updatePostMut.mutate({ id, postId: post.id, data: { postContent: editPostContent, tags: editPostTags || null } }, {
+                                onSuccess: (updated) => {
+                                  setGeneratedPosts(prev => (prev || []).map(p => p.id === post.id ? { ...p, postContent: updated.postContent, tags: updated.tags } : p));
+                                  queryClient.invalidateQueries({ queryKey: getListGeneratedPostsQueryKey(id) });
+                                  setEditingPostId(null);
+                                  toast({ title: "Post updated" });
+                                },
+                                onError: () => toast({ title: "Failed to update post", variant: "destructive" }),
+                              });
+                            }}>
+                              {updatePostMut.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                              <Save className="w-4 h-4 mr-1" /> Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col md:flex-row gap-4">
+                          {post.imageUrls && (
+                            <div className="w-full md:w-32 aspect-video md:aspect-square bg-secondary rounded-xl overflow-hidden shrink-0">
+                              <img src={post.imageUrls.split(';')[0]} className="w-full h-full object-cover" />
                             </div>
                           )}
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-2 text-xs text-muted-foreground font-medium">
+                              <span className="bg-primary/10 text-primary px-2 py-1 rounded-md">{post.dateTime}</span>
+                              <div className="flex items-center gap-2">
+                                <span>Acct: {post.accountId}</span>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                                  setEditingPostId(post.id);
+                                  setEditPostContent(post.postContent);
+                                  setEditPostTags(post.tags || "");
+                                }}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" disabled={deletePostMut.isPending} onClick={() => {
+                                  deletePostMut.mutate({ id, postId: post.id }, {
+                                    onSuccess: () => {
+                                      setGeneratedPosts(prev => (prev || []).filter(p => p.id !== post.id));
+                                      queryClient.invalidateQueries({ queryKey: getListGeneratedPostsQueryKey(id) });
+                                      toast({ title: "Post deleted" });
+                                    },
+                                    onError: () => toast({ title: "Failed to delete post", variant: "destructive" }),
+                                  });
+                                }}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{post.postContent}</p>
+                            {post.tags && (
+                              <div className="flex flex-wrap gap-1.5 mt-3">
+                                {post.tags.split(';').map((t: string, idx: number) => (
+                                  <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                    #{t.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </Card>
                   ))}
                 </div>
               ) : null}
+
+              <Dialog open={isDeleteAllPostsOpen} onOpenChange={setIsDeleteAllPostsOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Delete All Posts</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-muted-foreground">
+                    Are you sure you want to delete all {posts.length} generated posts? This action cannot be undone.
+                  </p>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDeleteAllPostsOpen(false)} className="rounded-xl">Cancel</Button>
+                    <Button
+                      variant="destructive"
+                      className="rounded-xl"
+                      disabled={deleteAllPostsMut.isPending}
+                      onClick={() => {
+                        deleteAllPostsMut.mutate({ id }, {
+                          onSuccess: () => {
+                            setGeneratedPosts([]);
+                            queryClient.invalidateQueries({ queryKey: getListGeneratedPostsQueryKey(id) });
+                            setIsDeleteAllPostsOpen(false);
+                            toast({ title: "All posts deleted" });
+                          },
+                          onError: () => toast({ title: "Failed to delete posts", variant: "destructive" }),
+                        });
+                      }}
+                    >
+                      {deleteAllPostsMut.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete All
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>
