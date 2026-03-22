@@ -3,11 +3,12 @@ import { AppLayout } from "@/components/layout";
 import { 
   useListAssets, 
   useListCampaigns, 
-  useListBrandAssets 
+  useListBrandAssets,
+  useListSavedEmails,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  Files, Megaphone, Image as ImageIcon, Activity, ArrowRight
+  Files, Megaphone, Image as ImageIcon, Activity, ArrowRight, Mail
 } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
@@ -17,14 +18,16 @@ export default function Dashboard() {
   const { data: assets } = useListAssets();
   const { data: campaigns } = useListCampaigns();
   const { data: brandAssets } = useListBrandAssets();
+  const { data: savedEmails } = useListSavedEmails();
 
   const activeCampaigns = campaigns?.filter(c => c.status === "active" || c.status === "scheduled") || [];
   const recentAssets = assets?.slice(0, 5) || [];
+  const recentEmails = savedEmails?.slice(0, 5) || [];
 
   const stats = [
     { name: "Total Assets", value: assets?.length || 0, icon: Files, color: "text-primary", bg: "bg-primary/10" },
     { name: "Active Campaigns", value: activeCampaigns.length, icon: Megaphone, color: "text-secondary", bg: "bg-secondary/10" },
-    { name: "Brand Images", value: brandAssets?.length || 0, icon: ImageIcon, color: "text-chart-3", bg: "bg-chart-3/10" },
+    { name: "Saved Emails", value: savedEmails?.length || 0, icon: Mail, color: "text-chart-3", bg: "bg-chart-3/10" },
     { name: "Total Campaigns", value: campaigns?.length || 0, icon: Activity, color: "text-chart-4", bg: "bg-chart-4/10" },
   ];
 
@@ -152,6 +155,41 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="glass-card rounded-2xl border-border/50 page-header-gradient-bar">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xl font-display font-semibold">Recent Email Campaigns</CardTitle>
+            <Link href="/email-generator" className="text-sm font-medium text-primary hover:underline flex items-center gap-1">
+              View all <ArrowRight className="w-4 h-4" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 mt-4">
+              {recentEmails.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No saved email campaigns yet</div>
+              ) : (
+                recentEmails.map((email) => (
+                  <div key={email.id} className="flex items-center gap-4 p-4 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all">
+                    <div className="p-3 rounded-xl bg-secondary/10">
+                      <Mail className="w-5 h-5 text-secondary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {email.subjectLineSuggestions?.[0] || "Untitled Email"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                        {email.platform} {email.tone ? `• ${email.tone}` : ""} • {email.assetTitles?.length || 0} asset{(email.assetTitles?.length || 0) !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-xs text-muted-foreground">
+                      {format(new Date(email.createdAt), "MMM d")}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
       </div>
     </AppLayout>
