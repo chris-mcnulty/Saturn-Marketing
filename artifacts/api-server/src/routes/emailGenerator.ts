@@ -25,14 +25,15 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - Include a clear call-to-action`,
   hubspot_marketing: `Generate a structured marketing email as an HTML fragment for HubSpot Marketing Email.
 CRITICAL HTML RULES:
-- Output ONLY the inner email content — do NOT include <html>, <head>, <body>, or <meta> tags. HubSpot provides the document wrapper.
-- Every opening tag MUST have a matching closing tag. Especially: every <table> needs </table>, every <tr> needs </tr>, every <td> needs </td>.
-- Use <table> layout for structure (HubSpot email best practice), with inline CSS styles.
-- Use <h1>, <h2>, <p>, <ul>/<li>, <a>, <img>, and <table>/<tr>/<td> tags only.
-- Include placeholder markers like [CTA_BUTTON] for call-to-action buttons.
-- Reference asset images with markers like [IMAGE: asset_title].
-- Use clear visual hierarchy with headers, bullet points, and sections.
-- Include a compelling opening, value proposition sections, and a strong closing CTA.
+- Output ONLY the inner email content — do NOT include <html>, <head>, <body>, <meta>, or <!DOCTYPE> tags. HubSpot provides the document wrapper.
+- Every opening tag MUST have a matching closing tag. Every <table> needs </table>, every <tr> needs </tr>, every <td> needs </td>.
+- Use a single outer <table> with width="100%" and max-width 600px centered, with cellpadding="0" cellspacing="0".
+- Use inline CSS styles on every element (no <style> blocks — HubSpot strips them).
+- For CTA buttons: use an <a> tag styled as a button with inline styles: display:inline-block; padding:12px 28px; background-color:#810FFB; color:#ffffff; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;
+- Do NOT use [CTA_BUTTON] or [IMAGE: ...] placeholder markers. Use real <a> tags for buttons and real <img> tags for images.
+- Keep padding minimal: use padding:16px on content cells, padding:0 on the outer table.
+- Use font-family: Arial, Helvetica, sans-serif throughout.
+- Include a compelling opening, value proposition sections, and a strong closing CTA button.
 - Format for a broad audience newsletter style.
 - Double-check that ALL table, tr, and td tags are properly closed before returning.`,
   hubspot_1to1: `Generate a conversational, personal email as if writing to one individual person.
@@ -190,12 +191,28 @@ router.post("/email/generate", requireAuth, async (req, res): Promise<void> => {
     if (platform === "hubspot_marketing" || platform === "hubspot_1to1") {
       emailBody = emailBody
         .replace(/<\/?html[^>]*>/gi, "")
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
         .replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, "")
         .replace(/<head[^>]*>[\s\S]*$/gi, "")
         .replace(/<\/?body[^>]*>/gi, "")
         .replace(/<\/?meta[^>]*>/gi, "")
         .replace(/<!DOCTYPE[^>]*>/gi, "")
         .trim();
+
+      emailBody = emailBody.replace(
+        /\[CTA_BUTTON[:\s]*["']?([^"'\]]+)["']?\s*(?:[-–—]\s*(?:https?:\/\/\S+))?\]/gi,
+        (_, label) => {
+          return `<a href="#" style="display:inline-block;padding:12px 28px;background-color:#810FFB;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:16px;font-family:Arial,Helvetica,sans-serif;">${label.trim()}</a>`;
+        },
+      );
+      emailBody = emailBody.replace(
+        /\[CTA_BUTTON\]/gi,
+        '<a href="#" style="display:inline-block;padding:12px 28px;background-color:#810FFB;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Learn More</a>',
+      );
+      emailBody = emailBody.replace(
+        /\[IMAGE:\s*([^\]]+)\]/gi,
+        (_, alt) => `<img src="" alt="${alt.trim()}" style="max-width:100%;height:auto;display:block;" />`,
+      );
 
       const countOpen = (tag: string) => (emailBody.match(new RegExp(`<${tag}[\\s>]`, "gi")) || []).length;
       const countClose = (tag: string) => (emailBody.match(new RegExp(`</${tag}>`, "gi")) || []).length;

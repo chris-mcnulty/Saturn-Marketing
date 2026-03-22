@@ -684,7 +684,7 @@ export default function EmailGenerator() {
                         <span className="text-xs text-muted-foreground">Structured content for {displayEmail.platform}</span>
                       </div>
                       <div
-                        className="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_h1]:text-lg [&_h2]:text-base [&_h3]:text-sm [&_a]:text-primary"
+                        className="p-0 text-sm leading-relaxed max-w-none"
                         dangerouslySetInnerHTML={{
                           __html: DOMPurify.sanitize(displayEmail.emailBody, {
                             ALLOWED_TAGS: [
@@ -695,8 +695,9 @@ export default function EmailGenerator() {
                               "a", "span", "div",
                               "table", "thead", "tbody", "tr", "th", "td",
                               "img", "blockquote", "pre", "code",
+                              "center",
                             ],
-                            ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "style", "target", "rel"],
+                            ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "style", "target", "rel", "width", "height", "cellpadding", "cellspacing", "border", "align", "valign", "bgcolor", "role"],
                             ALLOW_DATA_ATTR: false,
                           }),
                         }}
