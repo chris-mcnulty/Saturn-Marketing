@@ -23,13 +23,18 @@ const PLATFORM_INSTRUCTIONS: Record<string, string> = {
 - Use plain text formatting (dashes for bullets, ALL CAPS for headers if needed)
 - Keep it professional and scannable
 - Include a clear call-to-action`,
-  hubspot_marketing: `Generate a structured marketing email suitable for HubSpot Marketing Email.
-- Use HTML-friendly content with clear sections
-- Include placeholder markers like [CTA_BUTTON] for call-to-action buttons
-- Reference asset images with markers like [IMAGE: asset_title]
-- Use headers, bullet points, and clear visual hierarchy
-- Include a compelling opening, value proposition sections, and a strong closing CTA
-- Format for a broad audience newsletter style`,
+  hubspot_marketing: `Generate a structured marketing email as an HTML fragment for HubSpot Marketing Email.
+CRITICAL HTML RULES:
+- Output ONLY the inner email content — do NOT include <html>, <head>, <body>, or <meta> tags. HubSpot provides the document wrapper.
+- Every opening tag MUST have a matching closing tag. Especially: every <table> needs </table>, every <tr> needs </tr>, every <td> needs </td>.
+- Use <table> layout for structure (HubSpot email best practice), with inline CSS styles.
+- Use <h1>, <h2>, <p>, <ul>/<li>, <a>, <img>, and <table>/<tr>/<td> tags only.
+- Include placeholder markers like [CTA_BUTTON] for call-to-action buttons.
+- Reference asset images with markers like [IMAGE: asset_title].
+- Use clear visual hierarchy with headers, bullet points, and sections.
+- Include a compelling opening, value proposition sections, and a strong closing CTA.
+- Format for a broad audience newsletter style.
+- Double-check that ALL table, tr, and td tags are properly closed before returning.`,
   hubspot_1to1: `Generate a conversational, personal email as if writing to one individual person.
 - Keep it short and personal (3-5 paragraphs max)
 - Use a warm, human tone — not templated
@@ -178,9 +183,33 @@ router.post("/email/generate", requireAuth, async (req, res): Promise<void> => {
       /---SUBJECT_LINES_START---([\s\S]*?)---SUBJECT_LINES_END---/,
     );
 
-    const emailBody = emailBodyMatch
+    let emailBody = emailBodyMatch
       ? emailBodyMatch[1].trim()
       : rawText.trim();
+
+    if (platform === "hubspot_marketing" || platform === "hubspot_1to1") {
+      emailBody = emailBody
+        .replace(/<\/?html[^>]*>/gi, "")
+        .replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, "")
+        .replace(/<head[^>]*>[\s\S]*$/gi, "")
+        .replace(/<\/?body[^>]*>/gi, "")
+        .replace(/<\/?meta[^>]*>/gi, "")
+        .replace(/<!DOCTYPE[^>]*>/gi, "")
+        .trim();
+
+      const countOpen = (tag: string) => (emailBody.match(new RegExp(`<${tag}[\\s>]`, "gi")) || []).length;
+      const countClose = (tag: string) => (emailBody.match(new RegExp(`</${tag}>`, "gi")) || []).length;
+
+      for (const tag of ["table", "tr", "td", "th", "thead", "tbody"]) {
+        const opens = countOpen(tag);
+        const closes = countClose(tag);
+        if (opens > closes) {
+          for (let i = 0; i < opens - closes; i++) {
+            emailBody += `</${tag}>`;
+          }
+        }
+      }
+    }
 
     const subjectLineSuggestions = subjectLinesMatch
       ? subjectLinesMatch[1]
