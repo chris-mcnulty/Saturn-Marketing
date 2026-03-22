@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Search, Link as LinkIcon, Trash2, Edit, RefreshCw, CheckCircle2, XCircle, Eye, Download, Upload, Filter, X } from "lucide-react";
+import { Loader2, Plus, Search, Link as LinkIcon, Trash2, Edit, RefreshCw, CheckCircle2, XCircle, Eye, Download, Upload, X } from "lucide-react";
 import { format, isAfter, isBefore, startOfDay, endOfDay, parseISO } from "date-fns";
 import { useLocation } from "wouter";
 
@@ -35,7 +35,7 @@ const createSchema = z.object({
 
 export default function Assets() {
   const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("all");
   const [filterDateFrom, setFilterDateFrom] = useState<string>("");
   const [filterDateTo, setFilterDateTo] = useState<string>("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -170,20 +170,16 @@ export default function Assets() {
     });
   };
 
-  const hasActiveFilters = filterCategory !== "" || filterDateFrom !== "" || filterDateTo !== "";
+  const hasActiveFilters = filterDateFrom !== "" || filterDateTo !== "";
 
   const clearFilters = () => {
-    setFilterCategory("");
     setFilterDateFrom("");
     setFilterDateTo("");
   };
 
-  const filteredAssets = assets?.filter(a => {
-    const matchesSearch = a.url.toLowerCase().includes(search.toLowerCase()) || 
+  const searchFiltered = assets?.filter(a => {
+    const matchesSearch = search === "" || a.url.toLowerCase().includes(search.toLowerCase()) || 
       (a.title && a.title.toLowerCase().includes(search.toLowerCase()));
-    
-    const matchesCategory = filterCategory === "" || 
-      (filterCategory === "uncategorized" ? !a.categoryId : String(a.categoryId) === filterCategory);
     
     let matchesDate = true;
     if (filterDateFrom) {
@@ -195,8 +191,34 @@ export default function Assets() {
       matchesDate = matchesDate && isBefore(new Date(a.createdAt), toDate);
     }
 
-    return matchesSearch && matchesCategory && matchesDate;
+    return matchesSearch && matchesDate;
   });
+
+  const categoryGroups = React.useMemo(() => {
+    if (!searchFiltered) return { tabs: [], grouped: {} as Record<string, typeof searchFiltered> };
+    const grouped: Record<string, NonNullable<typeof searchFiltered>> = {};
+    grouped["all"] = searchFiltered;
+    grouped["uncategorized"] = searchFiltered.filter(a => !a.categoryId);
+    for (const cat of categories || []) {
+      grouped[String(cat.id)] = searchFiltered.filter(a => String(a.categoryId) === String(cat.id));
+    }
+    const tabs = [
+      { id: "all", label: "All", count: searchFiltered.length },
+      ...(categories || [])
+        .map(c => ({ id: String(c.id), label: c.name, count: grouped[String(c.id)]?.length || 0 }))
+        .filter(t => t.count > 0),
+      ...(grouped["uncategorized"].length > 0 ? [{ id: "uncategorized", label: "Uncategorized", count: grouped["uncategorized"].length }] : []),
+    ];
+    return { tabs, grouped };
+  }, [searchFiltered, categories]);
+
+  React.useEffect(() => {
+    if (categoryGroups.tabs.length > 0 && !categoryGroups.tabs.some(t => t.id === activeTab)) {
+      setActiveTab("all");
+    }
+  }, [categoryGroups.tabs, activeTab]);
+
+  const filteredAssets = categoryGroups.grouped[activeTab] ?? categoryGroups.grouped["all"] ?? searchFiltered;
 
   return (
     <AppLayout>
@@ -250,15 +272,6 @@ export default function Assets() {
                   className="pl-9 h-11 rounded-xl bg-background"
                 />
               </div>
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="h-11 px-3 rounded-xl border border-input bg-background text-sm min-w-[160px]"
-              >
-                <option value="">All Categories</option>
-                <option value="uncategorized">Uncategorized</option>
-                {categories?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
               <div className="flex items-center gap-2">
                 <Input
                   type="date"
@@ -288,6 +301,31 @@ export default function Assets() {
               </p>
             )}
           </div>
+
+          {categoryGroups.tabs.length > 1 && (
+            <div className="flex items-center gap-1 px-4 py-2 border-b border-border/50 bg-secondary/10 overflow-x-auto">
+              {categoryGroups.tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                    activeTab === tab.id
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
+                    activeTab === tab.id
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-secondary text-muted-foreground"
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
