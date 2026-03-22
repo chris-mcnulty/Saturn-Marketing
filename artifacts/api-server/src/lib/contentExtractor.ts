@@ -1,5 +1,5 @@
-import { db, assetsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, assetsTable, brandAssetsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import * as cheerio from "cheerio";
 import { logger } from "./logger";
@@ -141,6 +141,30 @@ IMPORTANT RULES:
       suggestedImageUrl: imageUrl,
       extractionStatus: "completed",
     }).where(eq(assetsTable.id, assetId));
+
+    if (imageUrl) {
+      try {
+        const existing = await db.select({ id: brandAssetsTable.id })
+          .from(brandAssetsTable)
+          .where(and(
+            eq(brandAssetsTable.tenantId, asset.tenantId),
+            eq(brandAssetsTable.imageUrl, imageUrl)
+          ));
+
+        if (existing.length === 0) {
+          await db.insert(brandAssetsTable).values({
+            tenantId: asset.tenantId,
+            imageUrl: imageUrl,
+            title: title || null,
+            description: null,
+            tags: null,
+          });
+          logger.info({ assetId, imageUrl }, "Auto-added extracted image to brand assets");
+        }
+      } catch (brandErr) {
+        logger.warn({ err: brandErr, assetId, imageUrl }, "Failed to auto-add image to brand assets");
+      }
+    }
   } catch (e) {
     logger.error({ err: e, assetId }, "Content extraction failed");
     await db.update(assetsTable).set({ extractionStatus: "failed" }).where(eq(assetsTable.id, assetId));
