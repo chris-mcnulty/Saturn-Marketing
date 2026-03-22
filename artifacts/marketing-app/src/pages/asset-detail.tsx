@@ -93,6 +93,8 @@ export default function AssetDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [isInstantCampaignOpen, setIsInstantCampaignOpen] = useState(false);
   const [instantDuration, setInstantDuration] = useState(14);
+  const [instantPostsPerDay, setInstantPostsPerDay] = useState(2);
+  const [instantPostingTimes, setInstantPostingTimes] = useState(["09:00", "15:00"]);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
 
   const isValidId = Number.isFinite(id) && id > 0;
@@ -120,8 +122,8 @@ export default function AssetDetail() {
           name: campaignName,
           startDate,
           durationDays: instantDuration,
-          postsPerDay: 2,
-          postingTimes: "09:00,15:00",
+          postsPerDay: instantPostsPerDay,
+          postingTimes: instantPostingTimes.join(","),
         },
       });
       await addCampaignAssetMut.mutateAsync({
@@ -704,10 +706,10 @@ export default function AssetDetail() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <p className="text-sm text-muted-foreground">
-                Create a campaign for <span className="font-semibold text-foreground">{asset.title || "this asset"}</span> with default settings. You can customize everything on the campaign page afterward.
+                Create a campaign for <span className="font-semibold text-foreground">{asset.title || "this asset"}</span> starting today. All social accounts will be linked automatically.
               </p>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Campaign Duration (Days)</label>
+                <label className="text-sm font-medium mb-1.5 block">Duration (Days)</label>
                 <Input
                   type="number"
                   min={1}
@@ -716,7 +718,47 @@ export default function AssetDetail() {
                   onChange={e => setInstantDuration(parseInt(e.target.value) || 14)}
                   className="rounded-xl h-11"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Defaults: 2 posts/day at 9:00 AM and 3:00 PM, starting today.</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Posts Per Day</label>
+                <select
+                  value={instantPostsPerDay}
+                  onChange={e => {
+                    const count = parseInt(e.target.value);
+                    setInstantPostsPerDay(count);
+                    const defaultTimes: Record<number, string[]> = {
+                      1: ["12:00"],
+                      2: ["09:00", "15:00"],
+                      3: ["09:00", "12:00", "16:00"],
+                      4: ["08:00", "11:00", "14:00", "17:00"],
+                      5: ["08:00", "10:00", "12:00", "14:00", "16:00"],
+                    };
+                    setInstantPostingTimes(defaultTimes[count] || defaultTimes[2]!);
+                  }}
+                  className="w-full h-11 px-3 rounded-xl border border-input bg-background text-sm"
+                >
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <option key={n} value={n}>{n} post{n > 1 ? "s" : ""} per day</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Posting Times</label>
+                <div className="flex flex-wrap gap-2">
+                  {instantPostingTimes.map((time, idx) => (
+                    <Input
+                      key={idx}
+                      type="time"
+                      value={time}
+                      onChange={e => {
+                        const updated = [...instantPostingTimes];
+                        updated[idx] = e.target.value;
+                        setInstantPostingTimes(updated);
+                      }}
+                      className="rounded-xl h-11 w-[120px]"
+                    />
+                  ))}
+                </div>
               </div>
             </div>
             <DialogFooter>
