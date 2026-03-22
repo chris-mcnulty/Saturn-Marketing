@@ -95,6 +95,7 @@ export default function AssetDetail() {
   const [instantDuration, setInstantDuration] = useState(14);
   const [instantPostsPerDay, setInstantPostsPerDay] = useState(2);
   const [instantPostingTimes, setInstantPostingTimes] = useState(["09:00", "15:00"]);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<number[]>([]);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
 
   const isValidId = Number.isFinite(id) && id > 0;
@@ -130,12 +131,12 @@ export default function AssetDetail() {
         id: newCampaign.id,
         data: { assetId: id },
       });
-      if (socialAccounts && socialAccounts.length > 0) {
-        for (const account of socialAccounts) {
+      if (selectedAccountIds.length > 0) {
+        for (const accountId of selectedAccountIds) {
           try {
             await addAccountMut.mutateAsync({
               id: newCampaign.id,
-              data: { socialAccountId: account.id },
+              data: { socialAccountId: accountId },
             });
           } catch { /* skip if linking fails */ }
         }
@@ -346,7 +347,12 @@ export default function AssetDetail() {
             <Button
               variant="outline"
               className="rounded-xl h-10"
-              onClick={() => setIsInstantCampaignOpen(true)}
+              onClick={() => {
+                if (socialAccounts) {
+                  setSelectedAccountIds(socialAccounts.map(a => a.id));
+                }
+                setIsInstantCampaignOpen(true);
+              }}
             >
               <Megaphone className="w-4 h-4 mr-2" /> Instant Campaign
             </Button>
@@ -706,8 +712,59 @@ export default function AssetDetail() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <p className="text-sm text-muted-foreground">
-                Create a campaign for <span className="font-semibold text-foreground">{asset.title || "this asset"}</span> starting today. All social accounts will be linked automatically.
+                Create a campaign for <span className="font-semibold text-foreground">{asset.title || "this asset"}</span> starting today.
               </p>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Social Accounts <span className="text-destructive">*</span></label>
+                {socialAccounts && socialAccounts.length > 0 ? (
+                  <div className="border rounded-xl divide-y max-h-40 overflow-y-auto">
+                    {socialAccounts.map(account => (
+                      <label
+                        key={account.id}
+                        className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAccountIds.includes(account.id)}
+                          onChange={() => {
+                            setSelectedAccountIds(prev =>
+                              prev.includes(account.id)
+                                ? prev.filter(x => x !== account.id)
+                                : [...prev, account.id]
+                            );
+                          }}
+                          className="rounded border-muted-foreground"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium">{account.accountName}</div>
+                          <div className="text-xs text-muted-foreground capitalize">{account.platform}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No social accounts configured. Add accounts in Social Accounts settings first.</p>
+                )}
+                {socialAccounts && socialAccounts.length > 1 && (
+                  <div className="flex gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => setSelectedAccountIds(socialAccounts.map(a => a.id))}
+                    >
+                      Select all
+                    </button>
+                    <span className="text-xs text-muted-foreground">|</span>
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => setSelectedAccountIds([])}
+                    >
+                      Deselect all
+                    </button>
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Duration (Days)</label>
                 <Input
